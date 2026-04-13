@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "decorators"
+version = "0.3.0"
+description = "Decorator-driven persistence registry for Pydantic models and cli tooling"
+readme = "decorators/USAGE.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+dependencies = [
+    "pydantic>=2.0",
+    "sqlalchemy>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "decorators/cli/tests",
+    "decorators/db/tests",
+]
+addopts = "-v --tb=short"
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["decorators*"]

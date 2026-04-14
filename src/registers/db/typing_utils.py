@@ -18,6 +18,8 @@ from pydantic import TypeAdapter
 from sqlalchemy import JSON, Boolean, Date, DateTime, Float, Integer, Numeric, String
 from sqlalchemy.sql.type_api import TypeEngine
 
+DEFAULT_VARCHAR_LENGTH = 255
+
 
 # ---------------------------------------------------------------------------
 # URL helpers
@@ -92,8 +94,8 @@ _DIRECT_MAP: list[tuple[type, TypeEngine]] = [
     (datetime, DateTime()),
     (date,     Date()),
     (UUID,     String(36)),
-    (str,      String()),
-    (bytes,    String()),   # store as hex / base64 string for SQLite
+    (str,      String(DEFAULT_VARCHAR_LENGTH)),
+    (bytes,    String(DEFAULT_VARCHAR_LENGTH)),   # store as hex / base64 string for SQLite
 ]
 
 
@@ -119,7 +121,7 @@ def sqlalchemy_type_for_annotation(annotation: Any) -> TypeEngine[Any]:
     if fmt == "uuid":
         return String(36)
     if kind == "string":
-        return String()
+        return String(DEFAULT_VARCHAR_LENGTH)
     if kind == "integer":
         return Integer()
     if kind == "number":

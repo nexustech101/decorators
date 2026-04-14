@@ -52,12 +52,10 @@ if __name__ == "__main__":
 ```bash
 python app.py greet Alice
 python app.py --greet Alice
-python app.py -g Alice
 python app.py g Alice
 
 python app.py help
 python app.py --help
-python app.py -h
 python app.py h
 ```
 
@@ -192,6 +190,8 @@ def list_orders_asc(limit: int = 20, offset: int = 0):  # Filter by newest  (n..
 - Type annotations drive argument parsing.
 - Optional command aliases with `options=["-x", "--long"]`.
 - Optional DI (`DIContainer`) and middleware (`MiddlewareChain`).
+- `CommandRegistry.run()` preserves framework exceptions and wraps unexpected handler crashes as `CommandExecutionError` (with original exception chaining).
+- Operational logs use standard Python logging namespaces under `registers.cli.*`.
 
 ### `registers.db`
 
@@ -199,6 +199,9 @@ def list_orders_asc(limit: int = 20, offset: int = 0):  # Filter by newest  (n..
 - Access all persistence through `Model.objects`.
 - `id: int | None = None` gives database-managed autoincrement IDs.
 - Schema helpers are available as class methods: `create_schema`, `drop_schema`, `schema_exists`, `truncate`.
+- Unexpected SQLAlchemy runtime failures are normalized into `SchemaError` for cleaner, predictable error handling.
+- Operational logs use standard Python logging namespaces under `registers.db.*`.
+- DB exceptions provide structured metadata (`exc.context`, `exc.to_dict()`) for production diagnostics.
 
 ## `registers.db` Usage Snapshot
 
@@ -220,6 +223,9 @@ Customer.objects.ensure_column("phone", str | None, nullable=True)
 Customer.objects.rename_table("customers_archive")
 ```
 
+After `rename_table(...)` succeeds, the same `Model.objects` manager and
+schema helpers are immediately bound to the new table name.
+
 If your model contains a field named `password`, password values are automatically hashed on write, and instances receive `verify_password(...)`.
 
 ## Documentation
@@ -233,6 +239,13 @@ If your model contains a field named `password`, password values are automatical
 - Python 3.10+
 - `pydantic>=2.0`
 - `sqlalchemy>=2.0`
+
+## Testing
+
+- Default `pytest` includes SQLite plus PostgreSQL/MySQL rename-state integration tests.
+- Start Docker Desktop (or another Docker engine) before running tests so
+  `docker-compose.test-db.yml` services can boot.
+- The framework is backed by a rigorous, production-focused test suite (170+ tests) that covers unit, edge-case, and multi-dialect integration behavior.
 
 ## License
 

@@ -61,6 +61,7 @@ both checks are needed to catch all naming conflicts.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Callable, TypeVar
 
@@ -72,6 +73,7 @@ from registers.db.security import verify_password as verify_password_value
 from registers.db.typing_utils import annotation_is_integer, field_allows_none
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -151,6 +153,12 @@ def database_registry(
             autoincrement=resolved_autoincrement,
             unique_fields=tuple(unique_fields),
         )
+        logger.debug(
+            "Registered model '%s' with table='%s' manager_attr='%s'.",
+            model_cls.__name__,
+            manager.table_name,
+            manager_attr,
+        )
 
         # ---- Attach the manager ----------------------------------------
         _safe_setattr(model_cls, manager_attr, manager)
@@ -172,10 +180,15 @@ def database_registry(
 
 def _assert_valid_model(model_cls: type) -> None:
     if not (isinstance(model_cls, type) and issubclass(model_cls, BaseModel)):
+        logger.error("Invalid model registration target: %r", model_cls)
         raise ModelRegistrationError(
             "@database_registry can only decorate Pydantic BaseModel subclasses."
         )
     if hasattr(model_cls, "__dataclass_fields__"):
+        logger.error(
+            "Invalid model '%s': stdlib dataclass cannot be combined with BaseModel.",
+            getattr(model_cls, "__name__", repr(model_cls)),
+        )
         raise ModelRegistrationError(
             "Do not combine stdlib @dataclass with pydantic.BaseModel. "
             "Define the model as a plain `class User(BaseModel): ...`."
@@ -197,6 +210,12 @@ def _safe_setattr(model_cls: type, name: str, value: Any) -> None:
 
     if in_dict or in_pydantic_fields:
         source = "a Pydantic field" if in_pydantic_fields else "a class attribute"
+        logger.error(
+            "Attribute collision while attaching '%s' to model '%s' (%s).",
+            name,
+            model_cls.__name__,
+            source,
+        )
         raise ModelRegistrationError(
             f"Cannot attach '{name}' to '{model_cls.__name__}' — "
             f"it is already defined as {source} on the model.  "

@@ -2,6 +2,7 @@
 
 `registers.db` is a lightweight persistence layer for Pydantic models built on SQLAlchemy.
 The goal is simple: decorate a model, then use `Model.objects` for CRUD.
+The module is covered by a robust test suite and hardened for production-grade error reporting.
 
 This guide is designed to get you productive in about 10 minutes.
 
@@ -186,6 +187,10 @@ User.objects.column_names()
 User.objects.rename_table("users_archive")
 ```
 
+`rename_table(...)` is a full state transition: after it succeeds, the same
+`Model.objects` manager and class-level schema helpers (`schema_exists`, etc.)
+operate on the new table name immediately.
+
 For startup-safe migrations, prefer `ensure_column(...)`.
 
 ## 8. Relationships
@@ -288,3 +293,9 @@ app = FastAPI(lifespan=lifespan)
 - `MigrationError`
 
 All inherit from `RegistryError`.
+
+Operational note:
+
+- unexpected SQLAlchemy runtime failures are normalized into `SchemaError` with operation context
+- logs are emitted under `registers.db.*` so production logging/observability pipelines can capture failures cleanly
+- all DB exceptions expose structured metadata via `exc.context` and `exc.to_dict()` for richer diagnostics

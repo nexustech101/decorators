@@ -1,6 +1,7 @@
 # Building CLI Tools With `registers.cli`
 
 `registers.cli` is a lightweight decorator-based framework for building command-line tools from ordinary Python functions.
+It is backed by a robust automated test suite and designed for production-grade diagnostics through clear exceptions and logging.
 
 It supports two usage styles:
 
@@ -110,7 +111,13 @@ The canonical cli name is still the `name=` value.
 
 ## Standardized Error Handling
 
-The framework does not force one error-handling policy. A clean pattern is to wrap clis with your own decorator:
+The framework keeps error handling predictable:
+
+- framework-level issues (`UnknownCommandError`, `DependencyNotFoundError`, etc.) are raised directly
+- unexpected command-handler failures invoked through `registry.run()` are wrapped as `CommandExecutionError` with the original exception chained
+- logs are emitted via `registers.cli.*` loggers so applications can route them centrally
+
+You can still add app-level wrappers/policies as needed:
 
 ```python
 import functools
@@ -138,6 +145,17 @@ def exception_handler(handle_exit: bool = True, log_errors: bool = True) -> Call
                 raise
         return wrapper
     return decorator
+```
+
+Optional logger setup:
+
+```python
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 ```
 
 Usage:

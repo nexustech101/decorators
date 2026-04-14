@@ -8,6 +8,7 @@ Public API surface::
         DIContainer,
         MiddlewareChain,
         Dispatcher,
+        CommandExecutionError,
         build_parser,
         load_plugins,
         logging_middleware_pre,
@@ -24,6 +25,7 @@ from registers.cli.middleware import (
 from registers.cli.parser import build_parser
 from registers.cli.container import DIContainer
 from registers.cli.exceptions import (
+    CommandExecutionError,
     DependencyNotFoundError,
     DuplicateCommandError,
     FrameworkError,
@@ -45,6 +47,7 @@ __all__ = [
     "logging_middleware_post",
 
     # Exceptions
+    "CommandExecutionError",
     "DependencyNotFoundError",
     "DuplicateCommandError",
     "FrameworkError",

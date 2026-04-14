@@ -18,17 +18,18 @@ Design decisions
 
 from __future__ import annotations
 
+import logging
 import threading
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import Table, create_engine, event
 from sqlalchemy.engine import Engine
-from sqlalchemy.pool import NullPool, StaticPool
+from sqlalchemy.pool import StaticPool
 
 
 _lock: threading.Lock = threading.Lock()
 _engines: dict[str, Engine] = {}
+logger = logging.getLogger(__name__)
 
 
 def get_engine(database_url: str) -> Engine:
@@ -41,7 +42,10 @@ def get_engine(database_url: str) -> Engine:
     """
     with _lock:
         if database_url not in _engines:
+            logger.debug("Creating new SQLAlchemy engine for url='%s'.", database_url)
             _engines[database_url] = _create_engine(database_url)
+        else:
+            logger.debug("Reusing cached SQLAlchemy engine for url='%s'.", database_url)
         return _engines[database_url]
 
 
@@ -50,6 +54,7 @@ def dispose_engine(database_url: str) -> None:
     with _lock:
         engine = _engines.pop(database_url, None)
     if engine is not None:
+        logger.debug("Disposing SQLAlchemy engine for url='%s'.", database_url)
         engine.dispose()
 
 

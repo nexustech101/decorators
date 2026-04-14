@@ -70,6 +70,7 @@ def load_plugins(package_path: str, registry: CommandRegistry) -> list[ModuleTyp
             logger.debug("Loaded plugin: %s", full_name)
         except Exception as exc:
             # Log but continue — one bad plugin shouldn't abort the app
-            logger.warning("Skipping plugin '%s': %s", full_name, exc)
+            logger.warning("Skipping plugin '%s': %s", full_name, exc, exc_info=True)
 
     return loaded
+

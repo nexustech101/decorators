@@ -36,13 +36,15 @@ directly, which SQLAlchemy serialises appropriately.
 from __future__ import annotations
 
 from contextlib import contextmanager
+from dataclasses import replace
+import logging
 from pathlib import Path
 from typing import Any, Generator, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
-from sqlalchemy import Column, MetaData, Table, delete, func, select, update
+from sqlalchemy import Column, MetaData, Table, delete, func, inspect, select, update
 from sqlalchemy.engine import Connection
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from registers.db.engine import dialect_insert, dispose_engine, get_engine
 from registers.db.exceptions import (
@@ -50,6 +52,7 @@ from registers.db.exceptions import (
     ImmutableFieldError,
     InvalidPrimaryKeyAssignmentError,
     InvalidQueryError,
+    MigrationError,
     RecordNotFoundError,
     SchemaError,
     UniqueConstraintError,
@@ -69,6 +72,7 @@ from registers.db.typing_utils import (
 ModelT = TypeVar("ModelT", bound=BaseModel)
 _ORIGINAL_KEY_ATTR = "__registers_original_key__"
 _PASSWORD_FIELD = "password"
+logger = logging.getLogger(__name__)
 
 
 class DatabaseRegistry(Generic[ModelT]):
@@ -165,8 +169,119 @@ class DatabaseRegistry(Generic[ModelT]):
         return self._schema.ensure_column(column_name, annotation, nullable=nullable)
 
     def rename_table(self, new_name: str) -> None:
-        """Rename the backing table through SchemaManager."""
-        self._schema.rename_table(new_name)
+        """
+        Rename the backing table and atomically refresh table-bound state.
+
+        Either the rename fully succeeds (DDL + in-memory rebinding), or the
+        registry remains bound to the original table.
+        """
+        target_name = new_name.strip()
+        if not target_name:
+            raise MigrationError(
+                "rename_table() requires a non-empty target table name.",
+                operation="rename_table",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+            )
+
+        previous_name = self.table_name
+        if target_name == previous_name:
+            return
+
+        inspector = inspect(self._engine)
+        if inspector.has_table(target_name):
+            logger.warning(
+                "rename_table rejected for model='%s' table='%s' target='%s' because target exists.",
+                self.model_cls.__name__,
+                previous_name,
+                target_name,
+            )
+            raise MigrationError(
+                f"Cannot rename '{previous_name}' to '{target_name}': target table already exists.",
+                operation="rename_table",
+                model=self.model_cls.__name__,
+                table=previous_name,
+                details={"target_table": target_name},
+            )
+
+        previous_state = self._capture_table_state()
+
+        try:
+            self._schema.rename_table(target_name)
+        except SchemaError as exc:
+            logger.exception(
+                "DDL rename failed for model='%s' table='%s' target='%s'.",
+                self.model_cls.__name__,
+                previous_name,
+                target_name,
+            )
+            raise MigrationError(
+                f"Failed to rename '{previous_name}' to '{target_name}'.",
+                operation="rename_table",
+                model=self.model_cls.__name__,
+                table=previous_name,
+                details={"target_table": target_name},
+            ) from exc
+
+        try:
+            self._rebind_table_state(target_name)
+            if not self.schema_exists():
+                raise MigrationError(
+                    f"State refresh failed after renaming '{previous_name}' to '{target_name}'.",
+                    operation="rename_table",
+                    model=self.model_cls.__name__,
+                    table=target_name,
+                    details={"previous_table": previous_name},
+                )
+            logger.info(
+                "rename_table completed for model='%s' old='%s' new='%s'.",
+                self.model_cls.__name__,
+                previous_name,
+                target_name,
+            )
+        except Exception as exc:
+            rollback_error: Exception | None = None
+
+            try:
+                rollback_schema = SchemaManager(
+                    self._engine,
+                    previous_state["table"],
+                    target_name,
+                )
+                rollback_schema.rename_table(previous_name)
+            except Exception as rollback_exc:  # pragma: no cover - hard to force deterministically
+                rollback_error = rollback_exc
+            finally:
+                self._restore_table_state(previous_state)
+
+            if rollback_error is not None:
+                logger.exception(
+                    "rename_table rollback failed for model='%s' old='%s' new='%s'.",
+                    self.model_cls.__name__,
+                    previous_name,
+                    target_name,
+                )
+                raise MigrationError(
+                    f"Rename '{previous_name}' -> '{target_name}' failed and rollback did not complete.",
+                    operation="rename_table",
+                    model=self.model_cls.__name__,
+                    table=target_name,
+                    details={"rollback_target": previous_name},
+                ) from rollback_error
+
+            logger.exception(
+                "rename_table state transition failed and was rolled back for model='%s' old='%s' new='%s'.",
+                self.model_cls.__name__,
+                previous_name,
+                target_name,
+            )
+            raise MigrationError(
+                f"Rename '{previous_name}' -> '{target_name}' did not complete state transition.",
+                operation="rename_table",
+                model=self.model_cls.__name__,
+                table=target_name,
+                details={"previous_table": previous_name},
+            ) from exc
 
     def column_names(self) -> list[str]:
         """Return current column names from live DB inspection."""
@@ -204,6 +319,8 @@ class DatabaseRegistry(Generic[ModelT]):
                 return self._create_with_conn(conn, instance)
         except IntegrityError as exc:
             raise self._classify_integrity_error(exc) from exc
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("create", exc)
 
     def strict_create(self, **data: Any) -> ModelT:
         """Alias for ``create()`` for callers that prefer explicit wording."""
@@ -225,6 +342,8 @@ class DatabaseRegistry(Generic[ModelT]):
                 return self._upsert_with_conn(conn, target)
         except IntegrityError as exc:
             raise self._classify_integrity_error(exc) from exc
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("upsert", exc)
 
     def save(self, instance: ModelT) -> ModelT:
         """
@@ -243,9 +362,19 @@ class DatabaseRegistry(Generic[ModelT]):
         before any SQL is issued.
         """
         if not criteria:
-            raise InvalidQueryError("update_where() requires at least one filter criterion.")
+            raise InvalidQueryError(
+                "update_where() requires at least one filter criterion.",
+                operation="update_where",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+            )
         if not updates:
-            raise InvalidQueryError("update_where() requires at least one field to update.")
+            raise InvalidQueryError(
+                "update_where() requires at least one field to update.",
+                operation="update_where",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+            )
 
         self._assert_known_fields(criteria)
         self._assert_known_fields(updates)
@@ -274,6 +403,8 @@ class DatabaseRegistry(Generic[ModelT]):
                 return [self._row_to_model(row) for row in rows]
         except IntegrityError as exc:
             raise self._classify_integrity_error(exc) from exc
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("update_where", exc)
 
     def delete(self, key_value: Any) -> bool:
         """Delete the row with the given primary key. Returns True if deleted."""
@@ -282,14 +413,22 @@ class DatabaseRegistry(Generic[ModelT]):
     def delete_where(self, **criteria: Any) -> int:
         """Delete all rows matching *criteria*. Returns the deleted row count."""
         if not criteria:
-            raise InvalidQueryError("delete_where() requires at least one filter criterion.")
+            raise InvalidQueryError(
+                "delete_where() requires at least one filter criterion.",
+                operation="delete_where",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+            )
         self._assert_known_fields(criteria)
 
         stmt = delete(self._table)
         stmt = self._apply_where(stmt, criteria)
-        with self._engine.begin() as conn:
-            result = conn.execute(stmt)
-        return result.rowcount or 0
+        try:
+            with self._engine.begin() as conn:
+                result = conn.execute(stmt)
+            return result.rowcount or 0
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("delete_where", exc)
 
     def bulk_create(self, records: list[Mapping[str, Any]]) -> list[ModelT]:
         """Create multiple records atomically and return stamped models."""
@@ -312,6 +451,8 @@ class DatabaseRegistry(Generic[ModelT]):
                 return [self._create_with_conn(conn, instance) for instance in instances]
         except IntegrityError as exc:
             raise self._classify_integrity_error(exc) from exc
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("bulk_create", exc)
 
     def bulk_upsert(self, records: list[Mapping[str, Any]]) -> list[ModelT]:
         """Upsert multiple records atomically and return stamped models."""
@@ -327,6 +468,8 @@ class DatabaseRegistry(Generic[ModelT]):
                     persisted.append(self._upsert_with_conn(conn, target))
         except IntegrityError as exc:
             raise self._classify_integrity_error(exc) from exc
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("bulk_upsert", exc)
 
         return persisted
 
@@ -356,7 +499,11 @@ class DatabaseRegistry(Generic[ModelT]):
         if record is None:
             normalized = self._normalize_lookup(args, criteria)
             raise RecordNotFoundError(
-                f"No {self.model_cls.__name__} found matching {normalized!r}."
+                f"No {self.model_cls.__name__} found matching {normalized!r}.",
+                operation="require",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+                details={"criteria": normalized},
             )
         return record
 
@@ -385,9 +532,12 @@ class DatabaseRegistry(Generic[ModelT]):
         if offset is not None:
             stmt = stmt.offset(offset)
 
-        with self._engine.begin() as conn:
-            rows = conn.execute(stmt).mappings().all()
-        return [self._row_to_model(row) for row in rows]
+        try:
+            with self._engine.begin() as conn:
+                rows = conn.execute(stmt).mappings().all()
+            return [self._row_to_model(row) for row in rows]
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("filter", exc)
 
     def all(self, order_by: str | list[str] | tuple[str, ...] | None = None) -> list[ModelT]:
         """Return every row as validated Pydantic models."""
@@ -404,8 +554,11 @@ class DatabaseRegistry(Generic[ModelT]):
 
         stmt = select(func.count()).select_from(self._table)
         stmt = self._apply_where(stmt, criteria)
-        with self._engine.begin() as conn:
-            return (conn.execute(stmt).scalar_one() or 0) > 0
+        try:
+            with self._engine.begin() as conn:
+                return (conn.execute(stmt).scalar_one() or 0) > 0
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("exists", exc)
 
     def count(self, **criteria: Any) -> int:
         """Return the number of rows matching *criteria* (or all rows if empty)."""
@@ -414,8 +567,11 @@ class DatabaseRegistry(Generic[ModelT]):
 
         stmt = select(func.count()).select_from(self._table)
         stmt = self._apply_where(stmt, criteria)
-        with self._engine.begin() as conn:
-            return conn.execute(stmt).scalar_one() or 0
+        try:
+            with self._engine.begin() as conn:
+                return conn.execute(stmt).scalar_one() or 0
+        except SQLAlchemyError as exc:
+            self._raise_sqlalchemy_error("count", exc)
 
     def first(
         self,
@@ -487,6 +643,35 @@ class DatabaseRegistry(Generic[ModelT]):
 
         return Table(self.table_name, self._metadata, *columns, **table_kwargs)
 
+    def _capture_table_state(self) -> dict[str, Any]:
+        return {
+            "config": self.config,
+            "table_name": self.table_name,
+            "metadata": self._metadata,
+            "table": self._table,
+            "schema": self._schema,
+        }
+
+    def _restore_table_state(self, state: Mapping[str, Any]) -> None:
+        self.config = state["config"]
+        self.table_name = state["table_name"]
+        self._metadata = state["metadata"]
+        self._table = state["table"]
+        self._schema = state["schema"]
+
+    def _rebind_table_state(self, table_name: str) -> None:
+        """
+        Rebuild all state derived from the active table name.
+
+        This is the single refresh path used after schema mutations that
+        change table identity.
+        """
+        self.config = replace(self.config, table_name=table_name)
+        self.table_name = table_name
+        self._metadata = MetaData()
+        self._table = self._build_table()
+        self._schema = SchemaManager(self._engine, self._table, self.table_name)
+
     def _column_nullable(self, field_name: str, field_info: Any) -> bool:
         # The PK column for autoincrement must be nullable so INSERTs can
         # omit it and let the database generate it.
@@ -513,7 +698,13 @@ class DatabaseRegistry(Generic[ModelT]):
             descending = field.startswith("-")
             field_name = field[1:] if descending else field
             if field_name not in self.model_cls.model_fields:
-                raise InvalidQueryError(f"Unknown sort field '{field_name}'.")
+                raise InvalidQueryError(
+                    f"Unknown sort field '{field_name}'.",
+                    operation="order_by",
+                    model=self.model_cls.__name__,
+                    table=self.table_name,
+                    field=field_name,
+                )
             column = self._table.c[field_name]
             stmt = stmt.order_by(column.desc() if descending else column.asc())
         return stmt
@@ -532,10 +723,18 @@ class DatabaseRegistry(Generic[ModelT]):
     def _normalize_lookup(self, args: tuple[Any, ...], criteria: Mapping[str, Any]) -> dict[str, Any]:
         if args and criteria:
             raise InvalidQueryError(
-                "Pass either a positional primary-key or keyword criteria, not both."
+                "Pass either a positional primary-key or keyword criteria, not both.",
+                operation="lookup",
+                model=self.model_cls.__name__,
+                table=self.table_name,
             )
         if len(args) > 1:
-            raise InvalidQueryError("Only one positional lookup argument is supported.")
+            raise InvalidQueryError(
+                "Only one positional lookup argument is supported.",
+                operation="lookup",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+            )
         return {self.key_field: args[0]} if args else dict(criteria)
 
     def _assert_known_fields(self, fields: Any) -> None:
@@ -550,13 +749,22 @@ class DatabaseRegistry(Generic[ModelT]):
                 continue
             if operator not in VALID_OPERATORS:
                 raise InvalidQueryError(
-                    f"Unknown query operator '{operator}' for field '{field_name}'."
+                    f"Unknown query operator '{operator}' for field '{field_name}'.",
+                    operation="query_validation",
+                    model=self.model_cls.__name__,
+                    table=self.table_name,
+                    field=field_name,
+                    details={"operator": operator},
                 )
             normalized_fields.append((field_name, operator, value))
 
         if unknown:
             raise InvalidQueryError(
-                f"Unknown field(s) {unknown!r} on model '{self.model_cls.__name__}'."
+                f"Unknown field(s) {unknown!r} on model '{self.model_cls.__name__}'.",
+                operation="query_validation",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+                details={"unknown_fields": unknown},
             )
 
         for field_name, operator, value in normalized_fields:
@@ -567,14 +775,24 @@ class DatabaseRegistry(Generic[ModelT]):
                 elif operator == "between":
                     if not isinstance(value, (list, tuple)) or len(value) != 2:
                         raise InvalidQueryError(
-                            f"Field '{field_name}__between' requires a two-item tuple or list."
+                            f"Field '{field_name}__between' requires a two-item tuple or list.",
+                            operation="query_validation",
+                            model=self.model_cls.__name__,
+                            table=self.table_name,
+                            field=field_name,
+                            details={"operator": operator},
                         )
                     adapter.validate_python(value[0])
                     adapter.validate_python(value[1])
                 elif operator in {"in", "not_in"}:
                     if not is_iterable_value(value):
                         raise InvalidQueryError(
-                            f"Field '{field_name}__{operator}' requires an iterable of values."
+                            f"Field '{field_name}__{operator}' requires an iterable of values.",
+                            operation="query_validation",
+                            model=self.model_cls.__name__,
+                            table=self.table_name,
+                            field=field_name,
+                            details={"operator": operator},
                         )
                     for item in value:
                         adapter.validate_python(item)
@@ -583,7 +801,12 @@ class DatabaseRegistry(Generic[ModelT]):
             except ValidationError as exc:
                 raise InvalidQueryError(
                     f"Invalid value for field '{field_name}' on model "
-                    f"'{self.model_cls.__name__}': {value!r}"
+                    f"'{self.model_cls.__name__}': {value!r}",
+                    operation="query_validation",
+                    model=self.model_cls.__name__,
+                    table=self.table_name,
+                    field=field_name,
+                    details={"operator": operator, "value": value},
                 ) from exc
 
     # ------------------------------------------------------------------
@@ -629,7 +852,11 @@ class DatabaseRegistry(Generic[ModelT]):
         if key_value is not None:
             raise InvalidPrimaryKeyAssignmentError(
                 f"Cannot explicitly assign '{self.model_cls.__name__}.{self.key_field}' "
-                "when the primary key is database-managed."
+                "when the primary key is database-managed.",
+                operation="create",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+                field=self.key_field,
             )
 
     def _assert_immutable_key(self, instance: ModelT) -> None:
@@ -638,7 +865,12 @@ class DatabaseRegistry(Generic[ModelT]):
         if original is not None and current != original:
             raise ImmutableFieldError(
                 f"Field '{self.model_cls.__name__}.{self.key_field}' is immutable once "
-                "the record has been persisted."
+                "the record has been persisted.",
+                operation="save",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+                field=self.key_field,
+                details={"original": original, "current": current},
             )
 
     def _stamp_identity(self, instance: ModelT) -> ModelT:
@@ -781,20 +1013,65 @@ class DatabaseRegistry(Generic[ModelT]):
     # Private: error classification
     # ------------------------------------------------------------------
 
+    def _raise_sqlalchemy_error(self, operation: str, exc: SQLAlchemyError) -> None:
+        logger.exception(
+            "Database operation '%s' failed for model='%s' table='%s'.",
+            operation,
+            self.model_cls.__name__,
+            self.table_name,
+        )
+        raise SchemaError(
+            f"Database operation '{operation}' failed for '{self.model_cls.__name__}' "
+            f"on table '{self.table_name}'.",
+            operation=operation,
+            model=self.model_cls.__name__,
+            table=self.table_name,
+            details={"driver_error": str(exc)},
+        ) from exc
+
     def _classify_integrity_error(self, exc: IntegrityError) -> Exception:
         msg = str(exc.orig).lower()
         key_marker = f".{self.key_field}".lower()
 
         if "unique constraint failed" in msg or "duplicate" in msg:
             if key_marker in msg:
-                return DuplicateKeyError(
-                    f"Duplicate primary key for '{self.model_cls.__name__}.{self.key_field}'."
+                logger.warning(
+                    "Primary-key integrity violation model='%s' key_field='%s' table='%s'.",
+                    self.model_cls.__name__,
+                    self.key_field,
+                    self.table_name,
+                    exc_info=True,
                 )
-            return UniqueConstraintError(
-                f"Unique constraint violated on '{self.model_cls.__name__}'."
+                return DuplicateKeyError(
+                    f"Duplicate primary key for '{self.model_cls.__name__}.{self.key_field}'.",
+                    operation="write",
+                    model=self.model_cls.__name__,
+                    table=self.table_name,
+                    field=self.key_field,
+                )
+            logger.warning(
+                "Unique-constraint integrity violation model='%s' table='%s'.",
+                self.model_cls.__name__,
+                self.table_name,
+                exc_info=True,
             )
+            return UniqueConstraintError(
+                f"Unique constraint violated on '{self.model_cls.__name__}'.",
+                operation="write",
+                model=self.model_cls.__name__,
+                table=self.table_name,
+            )
+        logger.exception(
+            "Unhandled integrity error model='%s' table='%s'.",
+            self.model_cls.__name__,
+            self.table_name,
+        )
         return SchemaError(
-            f"Database integrity error on table '{self.table_name}': {exc.orig}"
+            f"Database integrity error on table '{self.table_name}': {exc.orig}",
+            operation="write",
+            model=self.model_cls.__name__,
+            table=self.table_name,
+            details={"driver_error": str(exc.orig)},
         )
 
     def __repr__(self) -> str:

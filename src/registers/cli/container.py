@@ -17,11 +17,13 @@ Usage::
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Type, TypeVar
 
 from registers.cli.exceptions import DependencyNotFoundError
 
 T = TypeVar("T")
+logger = logging.getLogger(__name__)
 
 
 class DIContainer:
@@ -44,6 +46,7 @@ class DIContainer:
             instance: The concrete instance to inject.
         """
         self._registry[dep_type] = instance
+        logger.debug("Registered DI dependency type='%s'.", dep_type.__name__)
 
     def resolve(self, dep_type: Type[T]) -> T:
         """
@@ -54,7 +57,9 @@ class DIContainer:
                                      for *dep_type*.
         """
         if dep_type not in self._registry:
+            logger.warning("DI dependency not found for type='%s'.", dep_type.__name__)
             raise DependencyNotFoundError(dep_type)
+        logger.debug("Resolved DI dependency type='%s'.", dep_type.__name__)
         return self._registry[dep_type]  # type: ignore[return-value]
 
     def has(self, dep_type: type) -> bool:

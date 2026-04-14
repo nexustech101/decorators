@@ -16,13 +16,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from difflib import get_close_matches
+import logging
 from typing import TYPE_CHECKING, Any, Callable, Sequence
 
-from registers.cli.exceptions import DuplicateCommandError, UnknownCommandError
+from registers.cli.exceptions import (
+    CommandExecutionError,
+    DuplicateCommandError,
+    FrameworkError,
+    UnknownCommandError,
+)
 
 if TYPE_CHECKING:
     from registers.cli.middleware import MiddlewareChain
     from registers.cli.container import DIContainer
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -79,6 +87,7 @@ class CommandRegistry:
         def registers(fn: Callable[..., Any]) -> Callable[..., Any]:
             # Check command name collision
             if name in self._commands or name in self._aliases:
+                logger.warning("Attempted duplicate command registration name='%s'.", name)
                 raise DuplicateCommandError(name)
 
             # Check alias collisions
@@ -86,6 +95,11 @@ class CommandRegistry:
                 normalized = option.lstrip("-")
 
                 if normalized in self._commands or normalized in self._aliases:
+                    logger.warning(
+                        "Attempted duplicate command alias registration option='%s' normalized='%s'.",
+                        option,
+                        normalized,
+                    )
                     raise DuplicateCommandError(option)
 
                 self._aliases[normalized] = name
@@ -175,7 +189,7 @@ class CommandRegistry:
 
         parser = build_parser(self, container)
         raw_argv = list(sys.argv[1:] if argv is None else argv)
-        
+        logger.debug("CommandRegistry.run invoked with argv=%s", raw_argv)
         normalized = self._normalize_argv(raw_argv)
         try:
             args = parser.parse_args(normalized)
@@ -185,15 +199,26 @@ class CommandRegistry:
                 matches = get_close_matches(cmd, self._commands.keys())
                 if matches:
                     print(f"Did you mean '{matches[0]}'?")
+                    logger.info("Parser rejected command '%s'; suggested '%s'.", cmd, matches[0])
+                else:
+                    logger.info("Parser rejected argv=%s with no close command match.", normalized)
             raise
 
         if not args.command:
+            logger.info("No command provided; printing parser help.")
             parser.print_help()
             raise SystemExit(1)
 
         cli_args = {k: v for k, v in vars(args).items() if k != "command"}
         dispatcher = Dispatcher(self, container or DIContainer(), middleware)
-        result = dispatcher.dispatch(args.command, cli_args)
+        try:
+            result = dispatcher.dispatch(args.command, cli_args)
+        except FrameworkError:
+            logger.warning("Framework error while running command '%s'.", args.command, exc_info=True)
+            raise
+        except Exception as exc:
+            logger.exception("Unhandled command failure in run() for '%s'.", args.command)
+            raise CommandExecutionError(args.command, str(exc)) from exc
 
         if print_result and result is not None:
             print(result)

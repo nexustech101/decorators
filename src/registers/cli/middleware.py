@@ -74,10 +74,11 @@ _timing: dict[str, float] = {}
 def logging_middleware_pre(command: str, kwargs: dict[str, Any]) -> None:
     """Log command start and record the start time for timing."""
     _timing[command] = time.perf_counter()
-    logger.debug("→ Running command '%s' with args: %s", command, kwargs)
+    logger.debug("Running command '%s' with arg keys: %s", command, sorted(kwargs.keys()))
 
 
 def logging_middleware_post(command: str, result: Any) -> None:
     """Log command completion and elapsed wall-clock time."""
     elapsed = time.perf_counter() - _timing.pop(command, time.perf_counter())
     logger.debug("✓ Command '%s' completed in %.4fs", command, elapsed)
+

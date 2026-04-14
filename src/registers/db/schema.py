@@ -9,12 +9,12 @@ Full migrations (Alembic) are out of scope for v1, but completely ad-hoc
 ``DROP + CREATE`` workflows are too destructive for production.  This module
 provides a middle ground:
 
-* ``create_schema()``   — CREATE TABLE IF NOT EXISTS  (always safe)
-* ``drop_schema()``     — DROP TABLE  (explicit, intentional)
-* ``truncate()``        — DELETE all rows  (no DDL)
-* ``schema_exists()``   — inspection only
-* ``add_column()``      — ADD COLUMN  (non-destructive, SQLite-safe)
-* ``rename_table()``    — RENAME TABLE  (SQLite-safe)
+* ``create_schema()``   â€” CREATE TABLE IF NOT EXISTS  (always safe)
+* ``drop_schema()``     â€” DROP TABLE  (explicit, intentional)
+* ``truncate()``        â€” DELETE all rows  (no DDL)
+* ``schema_exists()``   â€” inspection only
+* ``add_column()``      â€” ADD COLUMN  (non-destructive, SQLite-safe)
+* ``rename_table()``    â€” RENAME TABLE  (SQLite-safe)
 
 Limitations
 -----------
@@ -27,6 +27,7 @@ Limitations
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from typing import Any
 
@@ -36,6 +37,8 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from registers.db.exceptions import MigrationError, SchemaError
 from registers.db.typing_utils import sqlalchemy_type_for_annotation
+
+logger = logging.getLogger(__name__)
 
 
 class SchemaManager:
@@ -59,21 +62,29 @@ class SchemaManager:
     # ------------------------------------------------------------------
 
     def create_schema(self) -> None:
-        """CREATE TABLE IF NOT EXISTS — always idempotent."""
+        """CREATE TABLE IF NOT EXISTS â€” always idempotent."""
         try:
             self._table.metadata.create_all(self._engine, tables=[self._table])
+            logger.debug("Created schema if needed for table '%s'.", self._table_name)
         except SQLAlchemyError as exc:
+            logger.exception("Failed to create schema for table '%s'.", self._table_name)
             raise SchemaError(
-                f"Failed to create schema for '{self._table_name}'."
+                f"Failed to create schema for '{self._table_name}'.",
+                operation="create_schema",
+                table=self._table_name,
             ) from exc
 
     def drop_schema(self) -> None:
-        """DROP TABLE — irreversible. Caller is responsible for data safety."""
+        """DROP TABLE â€” irreversible. Caller is responsible for data safety."""
         try:
             self._table.metadata.drop_all(self._engine, tables=[self._table])
+            logger.debug("Dropped schema for table '%s'.", self._table_name)
         except SQLAlchemyError as exc:
+            logger.exception("Failed to drop schema for table '%s'.", self._table_name)
             raise SchemaError(
-                f"Failed to drop schema for '{self._table_name}'."
+                f"Failed to drop schema for '{self._table_name}'.",
+                operation="drop_schema",
+                table=self._table_name,
             ) from exc
 
     def schema_exists(self) -> bool:
@@ -89,8 +100,14 @@ class SchemaManager:
         try:
             with self._engine.begin() as conn:
                 conn.execute(self._table.delete())
+            logger.debug("Truncated table '%s'.", self._table_name)
         except SQLAlchemyError as exc:
-            raise SchemaError(f"Failed to truncate '{self._table_name}'.") from exc
+            logger.exception("Failed to truncate table '%s'.", self._table_name)
+            raise SchemaError(
+                f"Failed to truncate '{self._table_name}'.",
+                operation="truncate",
+                table=self._table_name,
+            ) from exc
 
     # ------------------------------------------------------------------
     # Additive evolution (non-destructive)
@@ -100,7 +117,7 @@ class SchemaManager:
         """
         Add *column_name* to the live table if it does not already exist.
 
-        This is an **additive** operation only — it never drops or modifies
+        This is an **additive** operation only â€” it never drops or modifies
         existing columns.  New columns are always nullable unless the
         database can supply a DEFAULT value (which you should pass via
         ``annotation``).
@@ -117,10 +134,18 @@ class SchemaManager:
         existing = {col["name"] for col in inspector.get_columns(self._table_name)}
 
         if column_name in existing:
+            logger.warning(
+                "add_column rejected because column '%s' already exists on table '%s'.",
+                column_name,
+                self._table_name,
+            )
             raise MigrationError(
                 f"Column '{column_name}' already exists on '{self._table_name}'. "
                 "add_column() is not idempotent by design — guard with schema_exists() "
-                "or use ensure_column() for safe re-entrant scripts."
+                "or use ensure_column() for safe re-entrant scripts.",
+                operation="add_column",
+                table=self._table_name,
+                field=column_name,
             )
 
         sa_type = sqlalchemy_type_for_annotation(annotation)
@@ -132,9 +157,24 @@ class SchemaManager:
         try:
             with self._engine.begin() as conn:
                 conn.execute(text(col_ddl))
+            logger.info(
+                "Added column '%s' to table '%s' (nullable=%s).",
+                column_name,
+                self._table_name,
+                nullable,
+            )
         except (SQLAlchemyError, OperationalError) as exc:
+            logger.exception(
+                "Failed to add column '%s' to table '%s'.",
+                column_name,
+                self._table_name,
+            )
             raise SchemaError(
                 f"Failed to add column '{column_name}' to '{self._table_name}'."
+                ,
+                operation="add_column",
+                table=self._table_name,
+                field=column_name,
             ) from exc
 
     def ensure_column(self, column_name: str, annotation: Any, *, nullable: bool = True) -> bool:
@@ -148,26 +188,42 @@ class SchemaManager:
         inspector = inspect(self._engine)
         existing = {col["name"] for col in inspector.get_columns(self._table_name)}
         if column_name in existing:
+            logger.debug(
+                "ensure_column no-op for existing column '%s' on table '%s'.",
+                column_name,
+                self._table_name,
+            )
             return False
         self.add_column(column_name, annotation, nullable=nullable)
+        logger.debug(
+            "ensure_column created missing column '%s' on table '%s'.",
+            column_name,
+            self._table_name,
+        )
         return True
 
     def rename_table(self, new_name: str) -> None:
         """
         Rename the table.  Supported on SQLite 3.26+ and all major backends.
 
-        Note: This does *not* update the in-process ``Table`` object or the
-        registry's ``table_name``.  You must recreate the registry after
-        renaming if you intend to keep using it.
+        Note: This method performs the DDL rename only. Callers that cache
+        table-bound metadata (such as ``DatabaseRegistry``) are responsible
+        for rebinding in-memory state after a successful rename.
         """
         try:
             with self._engine.begin() as conn:
                 conn.execute(
                     text(f'ALTER TABLE "{self._table_name}" RENAME TO "{new_name}"')
                 )
+            logger.info("Renamed table '%s' to '%s'.", self._table_name, new_name)
         except (SQLAlchemyError, OperationalError) as exc:
+            logger.exception("Failed to rename table '%s' to '%s'.", self._table_name, new_name)
             raise SchemaError(
                 f"Failed to rename '{self._table_name}' to '{new_name}'."
+                ,
+                operation="rename_table",
+                table=self._table_name,
+                details={"target_table": new_name},
             ) from exc
 
     def column_names(self) -> list[str]:
@@ -178,7 +234,7 @@ class SchemaManager:
     def sqlite_version_supports_drop_column(self) -> bool:
         """
         Return True when the runtime SQLite version supports DROP COLUMN
-        (requires SQLite ≥ 3.35.0, released 2021-03-12).
+        (requires SQLite â‰¥ 3.35.0, released 2021-03-12).
         """
         try:
             with self._engine.connect() as conn:
@@ -189,3 +245,4 @@ class SchemaManager:
         except Exception:
             pass
         return False
+

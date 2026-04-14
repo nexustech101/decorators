@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import inspect
+import logging
 from typing import TYPE_CHECKING, Any, get_origin, get_args, Literal
 
 from registers.cli.registry import CommandRegistry
@@ -18,6 +19,8 @@ from registers.cli.utils.typing import is_bool_flag, is_optional, resolve_argpar
 
 if TYPE_CHECKING:
     from registers.cli.container import DIContainer
+
+logger = logging.getLogger(__name__)
 
 
 class SuggestingArgumentParser(argparse.ArgumentParser):
@@ -39,9 +42,16 @@ class SuggestingArgumentParser(argparse.ArgumentParser):
 
                 if matches:
                     print(f"Did you mean '{matches[0]}'?")
+                    logger.info(
+                        "Argparse invalid command '%s'; suggested '%s'.",
+                        cmd,
+                        matches[0],
+                    )
                 else:
                     print("Unknown command")
+                    logger.info("Argparse invalid command '%s' with no suggestion.", cmd)
 
+        logger.debug("Argparse error: %s", message)
         super().error(message)
 
 

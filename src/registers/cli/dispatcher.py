@@ -10,13 +10,16 @@ injected services.
 from __future__ import annotations
 
 import inspect
+import logging
 from typing import Any
 
-from registers.cli.exceptions import DependencyNotFoundError
+from registers.cli.exceptions import DependencyNotFoundError, FrameworkError
 from registers.cli.middleware import MiddlewareChain
 from registers.cli.container import DIContainer
 from registers.cli.registry import CommandRegistry
 from registers.cli.utils.reflection import get_params
+
+logger = logging.getLogger(__name__)
 
 
 class Dispatcher:
@@ -61,16 +64,26 @@ class Dispatcher:
             UnknownCommandError:    If *command* is not registered.
             DependencyNotFoundError: If a required dependency is missing.
         """
-        entry = self._registry.get(command)
-        handler = entry.handler
-
-        kwargs = self._resolve_kwargs(handler, cli_args)
-
-        self._middleware.run_pre(command, kwargs)
-        result = handler(**kwargs)
-        self._middleware.run_post(command, result)
-
-        return result
+        logger.debug(
+            "Dispatching command='%s' cli_arg_keys=%s",
+            command,
+            sorted(cli_args.keys()),
+        )
+        try:
+            entry = self._registry.get(command)
+            handler = entry.handler
+            kwargs = self._resolve_kwargs(handler, cli_args)
+            self._middleware.run_pre(command, kwargs)
+            result = handler(**kwargs)
+            self._middleware.run_post(command, result)
+            logger.debug("Command '%s' dispatched successfully.", command)
+            return result
+        except FrameworkError:
+            logger.warning("Framework-level dispatch failure for command '%s'.", command, exc_info=True)
+            raise
+        except Exception:
+            logger.exception("Unhandled exception during command '%s' execution.", command)
+            raise
 
     def _resolve_kwargs(
         self, handler: Any, cli_args: dict[str, Any]

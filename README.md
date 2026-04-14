@@ -1,4 +1,22 @@
-# registers
+
+<div align="center">
+ 
+# Registers Python Framework
+ 
+**Decorator-driven CLI tooling and database persistence for Python.**
+ 
+[![PyPI Version](https://img.shields.io/pypi/v/registers?color=4A90D9&label=pypi)](https://pypi.org/project/registers/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/registers)](https://pypi.org/project/registers/)
+[![CI](https://img.shields.io/github/actions/workflow/status/nexustech101/registers/publish.yml?label=ci)](https://github.com/nexustech101/registers/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/nexustech101/registers/blob/main/LICENSE)
+ 
+[CLI Framework](#registerscli) · [Database Registry](#registersdb) · [FastAPI Integration](#fastapi-integration) · [Error Reference](#error-reference)
+ 
+Register once. Use everywhere. One decorator makes a function a CLI command. One decorator gives a Pydantic model a full persistence layer. 
+Built for FastAPI, data engineering, and enterprise relational schemas.
+
+</div>
+<br>
 
 A Python framework built with **Developer Experience (DX)** in mind. `registers` uses a clean, ergonomic decorator registry design pattern to eliminate boilerplate when building CLI tools and database-backed applications — from lightweight scripts and data engineering pipelines to full ecommerce systems and enterprise-scale relational models.
 

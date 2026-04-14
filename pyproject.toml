@@ -42,6 +42,7 @@ Repository = "https://github.com/nexustech101/registers"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+asyncio_mode = "auto"
 
 [tool.setuptools.packages.find]
 where = ["src"]

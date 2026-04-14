@@ -13,7 +13,7 @@ The philosophy is simple: minimal setup, predictable behavior, and a fast path t
 pip install registers
 ```
 
-## Quick Start
+## Quick Start Guide
 
 1. Build one CLI command with a decorator.
 2. Build one DB model with a decorator.
@@ -26,14 +26,23 @@ from registers.cli import CommandRegistry
 
 cli = CommandRegistry()
 
+# ── built-in help alias ────────────────────────────────────────────────────
 
 @cli.register(
+    options=["-g", "--greet"],
     name="greet",
     description="Greet someone",
-    options=["-g", "--greet"],
 )
 def greet(name: str) -> str:
     return f"Hello, {name}!"
+
+@cli.register(
+    options=["-h", "--help"],
+    name="help",
+    description="List all registered commands",
+)
+def list_clis() -> None:
+    cli.list_clis()
 
 
 if __name__ == "__main__":
@@ -43,7 +52,21 @@ if __name__ == "__main__":
 ```bash
 python app.py greet Alice
 python app.py --greet Alice
+python app.py -g Alice
 python app.py g Alice
+
+python app.py help
+python app.py --help
+python app.py -h
+python app.py h
+```
+
+```bash
+Hello, Alice!
+
+Available commands:
+  greet [-g, --greet]: Greet someone
+  help [-h, --help]: List all registered commands
 ```
 
 ### Database + FastAPI in 5 minutes
@@ -151,8 +174,13 @@ def create_order(payload: CreateOrder):
     )
 
 
-@app.get("/orders", response_model=list[Order])
-def list_orders(limit: int = 20, offset: int = 0):
+@app.get("/orders/desc", response_model=list[Order])
+def list_orders_desc(limit: int = 20, offset: int = 0):  # Filter by oldest   (1, 2, 3...n)
+    return Order.objects.filter(order_by="id", limit=limit, offset=offset)
+
+
+@app.get("/orders/asc", response_model=list[Order])
+def list_orders_asc(limit: int = 20, offset: int = 0):  # Filter by newest  (n...3, 2, 1)
     return Order.objects.filter(order_by="-id", limit=limit, offset=offset)
 ```
 

@@ -33,14 +33,13 @@ class TestCliErrorHandling:
 
         assert exc.value.code == 2
 
-    def test_empty_argv_prints_commands_and_exits(self, capsys):
+    def test_empty_argv_prints_help_menu(self, capsys):
         @cli.register(description="Noop")
         @cli.option("--noop")
         def noop() -> None:
             return None
 
-        with pytest.raises(SystemExit) as exc:
-            cli.run([], print_result=False)
-
-        assert exc.value.code == 1
-        assert "Available commands:" in capsys.readouterr().out
+        assert cli.run([], print_result=False) is None
+        out = capsys.readouterr().out
+        assert "Decorates CLI Help" in out
+        assert "Commands" in out

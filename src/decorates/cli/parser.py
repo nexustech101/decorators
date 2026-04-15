@@ -98,7 +98,7 @@ def parse_command_args(entry: CommandEntry, tokens: list[str]) -> dict[str, Any]
     return values
 
 
-def render_command_usage(entry: CommandEntry) -> str:
+def render_command_usage(entry: CommandEntry, program_name: str | None = None) -> str:
     """Render a compact usage string for parse failures."""
 
     parts: list[str] = []
@@ -115,9 +115,10 @@ def render_command_usage(entry: CommandEntry) -> str:
         parts.append(f"[<{arg.name}> | {flag} VALUE]")
 
     suffix = " ".join(parts)
+    command_label = f"{program_name} {entry.name}".strip() if program_name else entry.name
     if suffix:
-        return f"usage: {entry.name} {suffix}"
-    return f"usage: {entry.name}"
+        return f"usage: {command_label} {suffix}"
+    return f"usage: {command_label}"
 
 
 def _named_argument_flags(arguments: tuple[ArgumentEntry, ...]) -> dict[str, ArgumentEntry]:

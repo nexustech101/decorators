@@ -132,6 +132,54 @@ def test_unknown_command_shows_suggestion(capsys):
     assert "Did you mean 'add'" in out
 
 
+def test_builtin_help_command_prints_professional_menu(capsys):
+    _register_todo_commands()
+
+    assert cli.run(["help"], print_result=False) is None
+    out = capsys.readouterr().out
+
+    assert "Decorates CLI Help" in out
+    assert "Built-in Command" in out
+    assert "Commands" in out
+    assert "add" in out
+    assert "update" in out
+    assert "help <command>" in out
+
+
+def test_builtin_help_aliases_print_menu(capsys):
+    _register_todo_commands()
+
+    assert cli.run(["--help"], print_result=False) is None
+    out = capsys.readouterr().out
+    assert "Decorates CLI Help" in out
+
+    assert cli.run(["-h"], print_result=False) is None
+    out = capsys.readouterr().out
+    assert "Decorates CLI Help" in out
+
+
+def test_builtin_help_supports_command_specific_view(capsys):
+    _register_todo_commands()
+
+    assert cli.run(["help", "add"], print_result=False) is None
+    out = capsys.readouterr().out
+    assert "Command Help: add" in out
+    assert "Arguments" in out
+    assert "title (str, required)" in out
+    assert "description (str, optional" in out
+
+
+def test_builtin_help_unknown_command_exits_with_code_2(capsys):
+    _register_todo_commands()
+
+    with pytest.raises(SystemExit) as exc:
+        cli.run(["help", "ad"], print_result=False)
+
+    assert exc.value.code == 2
+    out = capsys.readouterr().out
+    assert "Did you mean 'add'" in out
+
+
 def test_inferred_arguments_work_when_argument_decorator_is_omitted():
     @cli.register(description="Multiply")
     @cli.option("--multiply")

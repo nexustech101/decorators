@@ -91,7 +91,7 @@ def test_duplicate_argument_declaration_rejected():
 def test_list_commands_prints_registered_aliases(capsys):
     @cli.register(description="Greet")
     @cli.option("--hello")
-    @cli.option("-h")
+    @cli.option("-x")
     @cli.argument("name")
     def hello(name: str) -> str:
         return f"hi {name}"
@@ -101,4 +101,23 @@ def test_list_commands_prints_registered_aliases(capsys):
 
     assert "hello" in out
     assert "--hello" in out
-    assert "-h" in out
+    assert "-x" in out
+
+
+def test_help_name_and_aliases_are_reserved():
+    with pytest.raises(ValueError, match="reserved"):
+        @cli.register(description="Reserved name")
+        def help() -> None:
+            return None
+
+    with pytest.raises(ValueError, match="reserved"):
+        @cli.register(description="Reserved alias")
+        @cli.option("--help")
+        def custom_help_alias() -> None:
+            return None
+
+    with pytest.raises(ValueError, match="reserved"):
+        @cli.register(description="Reserved alias")
+        @cli.option("-h")
+        def custom_help_short_alias() -> None:
+            return None

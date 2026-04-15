@@ -11,14 +11,18 @@ from dataclasses import dataclass, field
 from difflib import get_close_matches
 import inspect
 import logging
+from pathlib import Path
 import sys
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Sequence, get_args, get_origin
 
 from decorates.cli.exceptions import CommandExecutionError, DuplicateCommandError, FrameworkError, UnknownCommandError
 from decorates.cli.utils.reflection import get_params
 from decorates.cli.utils.typing import is_bool_flag, is_optional
 
 logger = logging.getLogger(__name__)
+HELP_COMMAND_NAME = "help"
+HELP_ALIASES = ("help", "--help", "-h")
+HELP_RESERVED = frozenset({"help", "h"})
 
 
 class _MissingType:
@@ -187,6 +191,15 @@ class CommandRegistry:
             summary = entry.help_text or entry.description or "(no description)"
             print(f"  {entry.name}{aliases}: {summary}")
 
+    def print_help(self, command_name: str | None = None, *, program_name: str | None = None) -> None:
+        """Print comprehensive CLI help for all commands or one specific command."""
+        if command_name is None:
+            print(self._render_global_help(program_name=program_name))
+            return
+
+        entry = self.get(command_name)
+        print(self._render_command_help(entry, program_name=program_name))
+
     def run(
         self,
         argv: Sequence[str] | None = None,
@@ -195,12 +208,33 @@ class CommandRegistry:
     ) -> Any:
         from decorates.cli.parser import ParseError, parse_command_args, render_command_usage
 
+        program_name = Path(sys.argv[0]).name or "app.py"
         raw = list(sys.argv[1:] if argv is None else argv)
         if not raw:
-            self.list_commands()
-            raise SystemExit(1)
+            self.print_help(program_name=program_name)
+            return None
 
         token = raw[0]
+        if self._is_builtin_help_token(token):
+            if len(raw) > 2:
+                print("Error: help accepts at most one command name.")
+                raise SystemExit(2)
+
+            if len(raw) == 2:
+                target = raw[1]
+                try:
+                    self.print_help(target, program_name=program_name)
+                except UnknownCommandError:
+                    suggestion = self._suggest(target)
+                    if suggestion:
+                        print(f"Did you mean '{suggestion}'?")
+                    else:
+                        print(f"Unknown command '{target}'.")
+                    raise SystemExit(2)
+            else:
+                self.print_help(program_name=program_name)
+            return None
+
         try:
             entry = self.get(token)
         except UnknownCommandError:
@@ -215,7 +249,7 @@ class CommandRegistry:
             kwargs = parse_command_args(entry, raw[1:])
         except ParseError as exc:
             print(f"Error: {exc}")
-            print(render_command_usage(entry))
+            print(render_command_usage(entry, program_name=program_name))
             raise SystemExit(2)
 
         try:
@@ -246,6 +280,11 @@ class CommandRegistry:
         return token.lstrip("-").strip()
 
     def _assert_command_slot_available(self, command_name: str) -> None:
+        if self._normalize_alias(command_name) in HELP_RESERVED:
+            raise ValueError(
+                "The command name 'help' is reserved for the built-in help command."
+            )
+
         if command_name in self._commands:
             raise DuplicateCommandError(command_name)
 
@@ -257,6 +296,11 @@ class CommandRegistry:
             normalized = self._normalize_alias(flag)
             if not normalized:
                 raise ValueError(f"Invalid option '{flag}'.")
+
+            if normalized in HELP_RESERVED:
+                raise ValueError(
+                    f"Option '{flag}' is reserved for the built-in help command."
+                )
 
             if normalized in self._commands and normalized != command_name:
                 raise DuplicateCommandError(flag)
@@ -366,6 +410,7 @@ class CommandRegistry:
     def _suggest(self, token: str) -> str | None:
         candidates = set(self._commands)
         candidates.update(self._aliases)
+        candidates.update({HELP_COMMAND_NAME})
         matches = get_close_matches(self._normalize_alias(token), sorted(candidates), n=1)
         if not matches:
             return None
@@ -374,6 +419,105 @@ class CommandRegistry:
         if guess in self._aliases:
             return self._aliases[guess]
         return guess
+
+    @staticmethod
+    def _is_builtin_help_token(token: str) -> bool:
+        return token in HELP_ALIASES
+
+    @staticmethod
+    def _render_argument_type(annotation: Any) -> str:
+        if annotation in (inspect.Parameter.empty, Any):
+            return "str"
+
+        origin = get_origin(annotation)
+        if origin is not None:
+            args = ", ".join(CommandRegistry._render_argument_type(arg) for arg in get_args(annotation))
+            return f"{origin.__name__}[{args}]"
+
+        name = getattr(annotation, "__name__", None)
+        if name:
+            return name
+        return str(annotation)
+
+    def _render_global_help(self, *, program_name: str | None = None) -> str:
+        from decorates.cli.parser import render_command_usage
+
+        prog = program_name or "app.py"
+        lines: list[str] = [
+            "Decorates CLI Help",
+            "==================",
+            "",
+            "Overview",
+            "  Build commands with @register, @argument, and @option decorators.",
+            "",
+            "Usage",
+            f"  {prog} <command> [arguments]",
+            f"  {prog} {HELP_COMMAND_NAME}",
+            f"  {prog} {HELP_COMMAND_NAME} <command>",
+            f"  {prog} --help",
+            f"  {prog} -h",
+            "",
+            "Built-in Command",
+            f"  {HELP_COMMAND_NAME}, --help, -h",
+            "    Show this menu or detailed help for one command.",
+            "",
+        ]
+
+        if not self._commands:
+            lines.extend(
+                [
+                    "Commands",
+                    "  No commands are currently registered.",
+                ]
+            )
+            return "\n".join(lines)
+
+        lines.append("Commands")
+        for entry in self._commands.values():
+            summary = entry.help_text or entry.description or "No description provided."
+            aliases = ", ".join(entry.options) if entry.options else "none"
+            lines.append(f"  {entry.name}")
+            lines.append(f"    Summary: {summary}")
+            lines.append(f"    Aliases: {aliases}")
+            lines.append(f"    Usage: {render_command_usage(entry, program_name=prog)}")
+        lines.append("")
+        lines.append(f"Tip: run '{prog} {HELP_COMMAND_NAME} <command>' for argument-level details.")
+        return "\n".join(lines)
+
+    def _render_command_help(self, entry: CommandEntry, *, program_name: str | None = None) -> str:
+        from decorates.cli.parser import render_command_usage
+
+        prog = program_name or "app.py"
+        summary = entry.help_text or entry.description or "No description provided."
+        aliases = ", ".join(entry.options) if entry.options else "none"
+
+        lines: list[str] = [
+            f"Command Help: {entry.name}",
+            "=" * (14 + len(entry.name)),
+            "",
+            f"Summary: {summary}",
+            f"Aliases: {aliases}",
+            f"Usage: {render_command_usage(entry, program_name=prog)}",
+            "",
+            "Arguments",
+        ]
+
+        if not entry.arguments:
+            lines.append("  This command does not accept arguments.")
+            return "\n".join(lines)
+
+        for arg in entry.arguments:
+            requirement = "required" if arg.required else "optional"
+            type_name = self._render_argument_type(arg.type)
+            help_text = arg.help_text or "No description provided."
+            default_text = ""
+            if arg.default is not MISSING:
+                default_text = f", default={arg.default!r}"
+
+            lines.append(f"  {arg.name} ({type_name}, {requirement}{default_text})")
+            lines.append(f"    {help_text}")
+
+        return "\n".join(lines)
 
     def __len__(self) -> int:
         return len(self._commands)

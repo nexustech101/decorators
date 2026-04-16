@@ -131,7 +131,6 @@ def create_customer(payload: CreateCustomer):
     except UniqueConstraintError:
         raise HTTPException(status_code=409, detail="Email already exists")
 
-
 @app.get("/customers/{customer_id}", response_model=Customer)
 def get_customer(customer_id: int):
     try:
@@ -139,11 +138,9 @@ def get_customer(customer_id: int):
     except RecordNotFoundError:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-
 @app.post("/products", response_model=Product, status_code=201)
 def create_product(payload: CreateProduct):
     return Product.objects.create(**payload.model_dump())
-
 
 @app.post("/orders", response_model=Order, status_code=201)
 def create_order(payload: CreateOrder):
@@ -163,12 +160,11 @@ def create_order(payload: CreateOrder):
     )
 
 @app.get("/orders/desc", response_model=list[Order])
-def list_orders_desc(limit: int = 20, offset: int = 0):  # Filter by oldest   (1, 2, 3...n)
+def list_orders_desc(limit: int = 20, offset: int = 0):  # Filter by oldest   (1, 2, 3,..., n)
     return Order.objects.filter(order_by="id", limit=limit, offset=offset)
 
-
 @app.get("/orders/asc", response_model=list[Order])
-def list_orders_asc(limit: int = 20, offset: int = 0):  # Filter by newest  (n...3, 2, 1)
+def list_orders_asc(limit: int = 20, offset: int = 0):  # Filter by newest  (n,..., 3, 2, 1)
     return Order.objects.filter(order_by="-id", limit=limit, offset=offset)
 ```
 

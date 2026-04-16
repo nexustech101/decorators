@@ -1,12 +1,12 @@
-# Building CLI Tools With `decorates.cli`
+# Building CLI Tools With `functionals.cli`
 
-`decorates.cli` is now module-first: you define commands with module-level
+`functionals.cli` is now module-first: you define commands with module-level
 decorators (`register`, `argument`, `option`) and execute them with `run()`.
 
 ## Quick Start
 
 ```python
-import decorates.cli as cli
+import functionals.cli as cli
 
 
 @cli.register(description="Greet someone")
@@ -31,9 +31,9 @@ from __future__ import annotations
 from enum import StrEnum
 from time import strftime
 
-import decorates.cli as cli
-import decorates.db as db
-from decorates.db import db_field
+import functionals.cli as cli
+import functionals.db as db
+from functionals.db import db_field
 from pydantic import BaseModel
 
 DB_PATH = "todos.db"

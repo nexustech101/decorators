@@ -10,8 +10,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from decorates.db.exceptions import ConfigurationError
-from decorates.db.typing_utils import annotation_is_integer, field_allows_none
+from functionals.db.exceptions import ConfigurationError
+from functionals.db.typing_utils import annotation_is_integer, field_allows_none
 
 
 @dataclass(frozen=True)

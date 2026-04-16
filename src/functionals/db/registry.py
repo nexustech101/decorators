@@ -44,8 +44,8 @@ from sqlalchemy import Column, MetaData, Table, delete, func, inspect, select, u
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from decorates.db.engine import dialect_insert, dispose_engine, get_engine
-from decorates.db.exceptions import (
+from functionals.db.engine import dialect_insert, dispose_engine, get_engine
+from functionals.db.exceptions import (
     DuplicateKeyError,
     ImmutableFieldError,
     InvalidPrimaryKeyAssignmentError,
@@ -55,11 +55,11 @@ from decorates.db.exceptions import (
     SchemaError,
     UniqueConstraintError,
 )
-from decorates.db.metadata import RegistryConfig
-from decorates.db.operators import VALID_OPERATORS, is_iterable_value, parse_criterion, split_field_expr
-from decorates.db.schema import SchemaManager
-from decorates.db.security import hash_password, is_password_hash
-from decorates.db.typing_utils import (
+from functionals.db.metadata import RegistryConfig
+from functionals.db.operators import VALID_OPERATORS, is_iterable_value, parse_criterion, split_field_expr
+from functionals.db.schema import SchemaManager
+from functionals.db.security import hash_password, is_password_hash
+from functionals.db.typing_utils import (
     default_database_url,
     default_table_name,
     field_allows_none,
@@ -68,7 +68,7 @@ from decorates.db.typing_utils import (
 )
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
-_ORIGINAL_KEY_ATTR = "__decorates_original_key__"
+_ORIGINAL_KEY_ATTR = "__functionals_original_key__"
 _PASSWORD_FIELD = "password"
 logger = logging.getLogger(__name__)
 

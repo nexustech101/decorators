@@ -4,8 +4,8 @@ import pytest
 from pydantic import BaseModel
 
 from conftest import db_url
-from decorates.db import RecordNotFoundError, SchemaError, database_registry
-from decorates.db.exceptions import RegistryError
+from functionals.db import RecordNotFoundError, SchemaError, database_registry
+from functionals.db.exceptions import RegistryError
 
 
 class TestExceptionContext:

@@ -7,7 +7,7 @@ is needed.
 
 Usage::
 
-    from decorates.cli import load_plugins
+    from functionals.cli import load_plugins
     from app.commands import user_commands  # treated as a package
 
     load_plugins("app.commands", registry)
@@ -24,8 +24,8 @@ import logging
 import pkgutil
 from types import ModuleType
 
-from decorates.cli.exceptions import PluginLoadError
-from decorates.cli.registry import CommandRegistry
+from functionals.cli.exceptions import PluginLoadError
+from functionals.cli.registry import CommandRegistry
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 import pytest
 
-import decorates.cli as cli
+import functionals.cli as cli
 
 
 @pytest.fixture(autouse=True)

@@ -1,5 +1,5 @@
 """
-Integration tests for using decorates.db inside a FastAPI application.
+Integration tests for using functionals.db inside a FastAPI application.
 
 These tests exercise a realistic API lifecycle: schema startup, user creation,
 password hashing, login, update, retrieval, and deletion.
@@ -20,7 +20,7 @@ import httpx
 
 from conftest import db_url
 
-from decorates.db import (
+from functionals.db import (
     RecordNotFoundError,
     UniqueConstraintError,
     database_registry,

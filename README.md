@@ -1,23 +1,23 @@
 # Decorates
 
-[![PyPI version](https://img.shields.io/pypi/v/decorates)](https://pypi.org/project/decorates/)
-[![Python versions](https://img.shields.io/pypi/pyversions/decorates)](https://pypi.org/project/decorates/)
+[![PyPI version](https://img.shields.io/pypi/v/functionals)](https://pypi.org/project/functionals/)
+[![Python versions](https://img.shields.io/pypi/pyversions/functionals)](https://pypi.org/project/functionals/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![CLI](https://img.shields.io/badge/module-decorates.cli-blue)](#decoratescli)
-[![DB](https://img.shields.io/badge/module-decorates.db-darkgreen)](#decoratesdb)
+[![CLI](https://img.shields.io/badge/module-functionals.cli-blue)](#functionalscli)
+[![DB](https://img.shields.io/badge/module-functionals.db-darkgreen)](#functionalsdb)
 [![Tests](https://img.shields.io/badge/tested-170%2B%20tests-brightgreen)](#testing)
 
 Decorates is a production-oriented toolkit for two common Python surfaces:
 
-- `decorates.cli` for module-first command registration, typed arguments, and built-in help
-- `decorates.db` for Pydantic model persistence and additive schema operations on SQLAlchemy
+- `functionals.cli` for module-first command registration, typed arguments, and built-in help
+- `functionals.db` for Pydantic model persistence and additive schema operations on SQLAlchemy
 
 The package emphasizes explicit APIs, predictable behavior, and test-backed reliability.
 
 ## Install
 
 ```bash
-pip install decorates
+pip install functionals
 ```
 
 ## Quick Start Guide
@@ -29,8 +29,8 @@ pip install decorates
 ### CLI in 60 seconds
 
 ```python
-import decorates.cli as cli
-import decorates.db as db
+import functionals.cli as cli
+import functionals.db as db
 from pydantic import BaseModel
 
 @db.database_registry("users.db", table_name="users", key_field="id")
@@ -73,7 +73,7 @@ python users.py --help
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from decorates.db import (
+from functionals.db import (
     RecordNotFoundError,
     UniqueConstraintError,
     database_registry,
@@ -170,27 +170,27 @@ def list_orders_asc(limit: int = 20, offset: int = 0):  # Filter by newest  (n,.
 
 ## Core Concepts
 
-### `decorates.cli`
+### `functionals.cli`
 
 - Register functions with module-level decorators: `@register`, `@argument`, `@option`.
-- Run command handlers through the module registry via `decorates.cli.run()`.
+- Run command handlers through the module registry via `functionals.cli.run()`.
 - Support positional + named argument forms (for non-bool args), with bool flags as `--flag`.
 - Command aliases are declared with `@option("-x")` / `@option("--long")`.
 - Built-in help command is always available: `help`, `--help`, and `-h`.
 - Runtime wraps unexpected handler crashes as `CommandExecutionError` (with original exception chaining).
-- Operational logs use standard Python logging namespaces under `decorates.cli.*`.
+- Operational logs use standard Python logging namespaces under `functionals.cli.*`.
 
-### `decorates.db`
+### `functionals.db`
 
 - Register `BaseModel` classes with `@database_registry(...)`.
 - Access all persistence through `Model.objects`.
 - `id: int | None = None` gives database-managed autoincrement IDs.
 - Schema helpers are available as class methods: `create_schema`, `drop_schema`, `schema_exists`, `truncate`.
 - Unexpected SQLAlchemy runtime failures are normalized into `SchemaError` for cleaner, predictable error handling.
-- Operational logs use standard Python logging namespaces under `decorates.db.*`.
+- Operational logs use standard Python logging namespaces under `functionals.db.*`.
 - DB exceptions provide structured metadata (`exc.context`, `exc.to_dict()`) for production diagnostics.
 
-## `decorates.db` Usage Snapshot
+## `functionals.db` Usage Snapshot
 
 ```python
 # Filtering operators
@@ -217,9 +217,9 @@ If your model contains a field named `password`, password values are automatical
 
 ## Documentation
 
-- DB guide: `src/decorates/db/USAGE.md`
-- CLI source API: `src/decorates/cli`
-- DB source API: `src/decorates/db`
+- DB guide: `src/functionals/db/USAGE.md`
+- CLI source API: `src/functionals/cli`
+- DB source API: `src/functionals/db`
 
 ## Requirements
 
@@ -232,7 +232,7 @@ If your model contains a field named `password`, password values are automatical
 - Default `pytest` includes SQLite plus PostgreSQL/MySQL rename-state integration tests.
 - Start Docker Desktop (or another Docker engine) before running tests so
   `docker-compose.test-db.yml` services can boot.
-- The decorates is backed by a rigorous, production-focused test suite (170+ tests) that covers unit, edge-case, and multi-dialect integration behavior.
+- The functionals is backed by a rigorous, production-focused test suite (170+ tests) that covers unit, edge-case, and multi-dialect integration behavior.
 
 ## License
 

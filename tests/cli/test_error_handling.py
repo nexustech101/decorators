@@ -1,7 +1,7 @@
 import pytest
 
-import decorates.cli as cli
-from decorates.cli import CommandExecutionError
+import functionals.cli as cli
+from functionals.cli import CommandExecutionError
 
 
 @pytest.fixture(autouse=True)

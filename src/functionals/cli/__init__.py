@@ -3,7 +3,7 @@ Decorator-driven CLI tooling.
 
 Public, ergonomic entrypoints are module-level decorators and helpers:
 
-    import decorates.cli as cli
+    import functionals.cli as cli
 
     @cli.register(description="Say hello")
     @cli.argument("name")
@@ -15,8 +15,8 @@ Public, ergonomic entrypoints are module-level decorators and helpers:
         cli.run()
 """
 
-from decorates.cli.container import DIContainer
-from decorates.cli.decorators import (
+from functionals.cli.container import DIContainer
+from functionals.cli.decorators import (
     argument,
     get_registry,
     list_commands,
@@ -25,8 +25,8 @@ from decorates.cli.decorators import (
     reset_registry,
     run,
 )
-from decorates.cli.dispatcher import Dispatcher
-from decorates.cli.exceptions import (
+from functionals.cli.dispatcher import Dispatcher
+from functionals.cli.exceptions import (
     CommandExecutionError,
     DependencyNotFoundError,
     DuplicateCommandError,
@@ -34,14 +34,14 @@ from decorates.cli.exceptions import (
     PluginLoadError,
     UnknownCommandError,
 )
-from decorates.cli.middleware import (
+from functionals.cli.middleware import (
     MiddlewareChain,
     logging_middleware_post,
     logging_middleware_pre,
 )
-from decorates.cli.parser import ParseError, parse_command_args
-from decorates.cli.plugins import load_plugins
-from decorates.cli.registry import ArgumentEntry, CommandEntry, CommandRegistry, MISSING
+from functionals.cli.parser import ParseError, parse_command_args
+from functionals.cli.plugins import load_plugins
+from functionals.cli.registry import ArgumentEntry, CommandEntry, CommandRegistry, MISSING
 
 __all__ = [
     # Module-level command API

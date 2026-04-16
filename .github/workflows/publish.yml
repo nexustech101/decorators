@@ -15,7 +15,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout decorates
+      - name: Checkout functionals
         uses: actions/checkout@v4
 
       - name: Set up Python

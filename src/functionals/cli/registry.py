@@ -1,7 +1,7 @@
 """
 Internal command registry for the module-level CLI decorators.
 
-The public DX entrypoints live in ``decorates.cli.decorators``. This module
+The public DX entrypoints live in ``functionals.cli.decorators``. This module
 stores command specs and executes commands from those specs.
 """
 
@@ -15,9 +15,9 @@ from pathlib import Path
 import sys
 from typing import Any, Callable, Sequence, get_args, get_origin
 
-from decorates.cli.exceptions import CommandExecutionError, DuplicateCommandError, FrameworkError, UnknownCommandError
-from decorates.cli.utils.reflection import get_params
-from decorates.cli.utils.typing import is_bool_flag, is_optional
+from functionals.cli.exceptions import CommandExecutionError, DuplicateCommandError, FrameworkError, UnknownCommandError
+from functionals.cli.utils.reflection import get_params
+from functionals.cli.utils.typing import is_bool_flag, is_optional
 
 logger = logging.getLogger(__name__)
 HELP_COMMAND_NAME = "help"
@@ -206,7 +206,7 @@ class CommandRegistry:
         *,
         print_result: bool = True,
     ) -> Any:
-        from decorates.cli.parser import ParseError, parse_command_args, render_command_usage
+        from functionals.cli.parser import ParseError, parse_command_args, render_command_usage
 
         program_name = Path(sys.argv[0]).name or "app.py"
         raw = list(sys.argv[1:] if argv is None else argv)
@@ -440,7 +440,7 @@ class CommandRegistry:
         return str(annotation)
 
     def _render_global_help(self, *, program_name: str | None = None) -> str:
-        from decorates.cli.parser import render_command_usage
+        from functionals.cli.parser import render_command_usage
 
         prog = program_name or "app.py"
         lines: list[str] = [
@@ -485,7 +485,7 @@ class CommandRegistry:
         return "\n".join(lines)
 
     def _render_command_help(self, entry: CommandEntry, *, program_name: str | None = None) -> str:
-        from decorates.cli.parser import render_command_usage
+        from functionals.cli.parser import render_command_usage
 
         prog = program_name or "app.py"
         summary = entry.help_text or entry.description or "No description provided."

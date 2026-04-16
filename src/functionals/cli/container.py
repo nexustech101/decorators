@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Type, TypeVar
 
-from decorates.cli.exceptions import DependencyNotFoundError
+from functionals.cli.exceptions import DependencyNotFoundError
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)

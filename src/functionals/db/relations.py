@@ -46,7 +46,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from decorates.db.exceptions import RelationshipError
+from functionals.db.exceptions import RelationshipError
 
 if TYPE_CHECKING:
     from pydantic import BaseModel

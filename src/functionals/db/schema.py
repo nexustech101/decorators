@@ -1,5 +1,5 @@
 """
-Safe, additive schema evolution without a full migration decorates.
+Safe, additive schema evolution without a full migration functionals.
 
 Philosophy
 ----------
@@ -48,8 +48,8 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.sql.type_api import TypeEngine
 
-from decorates.db.exceptions import MigrationError, SchemaError
-from decorates.db.typing_utils import sqlalchemy_type_for_annotation
+from functionals.db.exceptions import MigrationError, SchemaError
+from functionals.db.typing_utils import sqlalchemy_type_for_annotation
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ Quick start
 ::
 
     from pydantic import BaseModel
-    from decorates.db import database_registry
+    from functionals.db import database_registry
 
     @database_registry(
         "sqlite:///users.db",
@@ -32,9 +32,9 @@ Quick start
     User.schema_exists()
 """
 
-from decorates.db.decorators import database_registry
-from decorates.db.engine import dispose_all, dispose_engine, get_engine
-from decorates.db.exceptions import (
+from functionals.db.decorators import database_registry
+from functionals.db.engine import dispose_all, dispose_engine, get_engine
+from functionals.db.exceptions import (
     ConfigurationError,
     DuplicateKeyError,
     ImmutableFieldError,
@@ -48,12 +48,12 @@ from decorates.db.exceptions import (
     SchemaError,
     UniqueConstraintError,
 )
-from decorates.db.registry import DatabaseRegistry
-from decorates.db.relations import BelongsTo, HasMany, HasManyThrough
-from decorates.db.schema import SchemaManager
-from decorates.db.metadata import RegistryConfig
-from decorates.db.fields import db_field
-from decorates.db.security import hash_password, is_password_hash, verify_password
+from functionals.db.registry import DatabaseRegistry
+from functionals.db.relations import BelongsTo, HasMany, HasManyThrough
+from functionals.db.schema import SchemaManager
+from functionals.db.metadata import RegistryConfig
+from functionals.db.fields import db_field
+from functionals.db.security import hash_password, is_password_hash, verify_password
 
 __all__ = [
     # Core

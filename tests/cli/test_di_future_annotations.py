@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-import decorates.cli as cli
+import functionals.cli as cli
 
 
 @pytest.fixture(autouse=True)

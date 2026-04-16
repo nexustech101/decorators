@@ -1,12 +1,12 @@
 """
-Public module-level decorators for ``decorates.cli``.
+Public module-level decorators for ``functionals.cli``.
 """
 
 from __future__ import annotations
 
 from typing import Any, Callable, Sequence
 
-from decorates.cli.registry import CommandRegistry, MISSING
+from functionals.cli.registry import CommandRegistry, MISSING
 
 _default_registry = CommandRegistry()
 

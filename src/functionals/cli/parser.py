@@ -9,7 +9,7 @@ import inspect
 import types
 from typing import Any, Literal, Union, get_args, get_origin
 
-from decorates.cli.registry import ArgumentEntry, CommandEntry, MISSING
+from functionals.cli.registry import ArgumentEntry, CommandEntry, MISSING
 
 
 class ParseError(ValueError):

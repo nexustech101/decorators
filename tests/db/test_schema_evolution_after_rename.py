@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy import inspect, text
 
 from conftest import db_url
-from decorates.db import database_registry
+from functionals.db import database_registry
 
 
 class TestSchemaEvolutionAfterRename:

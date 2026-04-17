@@ -33,7 +33,13 @@ class TestCliErrorHandling:
 
         assert exc.value.code == 2
 
-    def test_empty_argv_prints_help_menu(self, capsys):
+    def test_empty_argv_prints_help_menu(self, capsys, monkeypatch):
+        class _PipeLikeStdin:
+            def isatty(self) -> bool:
+                return False
+
+        monkeypatch.setattr("functionals.cli.registry.sys.stdin", _PipeLikeStdin())
+
         @cli.register(description="Noop")
         @cli.option("--noop")
         def noop() -> None:

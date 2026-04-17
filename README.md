@@ -62,10 +62,12 @@ if __name__ == "__main__":
 ```
 
 ```bash
+python users.py
 python users.py add "Alice"
 python users.py --add "Bob"
 python users.py list
 python users.py --help
+python users.py --interactive
 ```
 
 ### Database + FastAPI in 5 minutes
@@ -208,9 +210,12 @@ curl "http://localhost:8000/orders/desc?limit=20&offset=0"
 
 - Register functions with module-level decorators: `@register`, `@argument`, `@option`.
 - Run command handlers through the module registry via `functionals.cli.run()`.
+  With no argv in an interactive terminal, `run()` enters REPL mode.
 - Support positional + named argument forms (for non-bool args), with bool flags as `--flag`.
 - Command aliases are declared with `@option("-x")` / `@option("--long")`.
 - Built-in help command is always available: `help`, `--help`, and `-h`.
+- Interactive mode can be entered explicitly with `--interactive` / `-i` or
+  programmatically via `functionals.cli.run_shell()`.
 - Runtime wraps unexpected handler crashes as `CommandExecutionError` (with original exception chaining).
 - Operational logs use standard Python logging namespaces under `functionals.cli.*`.
 

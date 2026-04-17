@@ -13,7 +13,8 @@ import inspect
 import logging
 from pathlib import Path
 import sys
-from typing import Any, Callable, Sequence, get_args, get_origin
+from collections.abc import Callable
+from typing import Any, Sequence, get_args, get_origin
 
 from functionals.cli.exceptions import CommandExecutionError, DuplicateCommandError, FrameworkError, UnknownCommandError
 from functionals.cli.utils.reflection import get_params
@@ -23,6 +24,8 @@ logger = logging.getLogger(__name__)
 HELP_COMMAND_NAME = "help"
 HELP_ALIASES = ("help", "--help", "-h")
 HELP_RESERVED = frozenset({"help", "h"})
+INTERACTIVE_ALIASES = ("--interactive", "-i")
+INTERACTIVE_RESERVED = frozenset({"interactive", "i"})
 
 
 class _MissingType:
@@ -211,10 +214,18 @@ class CommandRegistry:
         program_name = Path(sys.argv[0]).name or "app.py"
         raw = list(sys.argv[1:] if argv is None else argv)
         if not raw:
+            if self._stdin_is_interactive():
+                return self.run_shell(print_result=print_result, program_name=program_name)
             self.print_help(program_name=program_name)
             return None
 
         token = raw[0]
+        if token in INTERACTIVE_ALIASES:
+            if len(raw) > 1:
+                print(f"Error: {token} does not take additional arguments.")
+                raise SystemExit(2)
+            return self.run_shell(print_result=print_result, program_name=program_name)
+
         if self._is_builtin_help_token(token):
             if len(raw) > 2:
                 print("Error: help accepts at most one command name.")
@@ -225,7 +236,7 @@ class CommandRegistry:
                 try:
                     self.print_help(target, program_name=program_name)
                 except UnknownCommandError:
-                    suggestion = self._suggest(target)
+                    suggestion = self.suggest(target)
                     if suggestion:
                         print(f"Did you mean '{suggestion}'?")
                     else:
@@ -238,7 +249,7 @@ class CommandRegistry:
         try:
             entry = self.get(token)
         except UnknownCommandError:
-            suggestion = self._suggest(token)
+            suggestion = self.suggest(token)
             if suggestion:
                 print(f"Did you mean '{suggestion}'?")
             else:
@@ -264,6 +275,27 @@ class CommandRegistry:
             print(result)
 
         return result
+
+    def run_shell(
+        self,
+        *,
+        print_result: bool = True,
+        prompt: str = "cli> ",
+        program_name: str | None = None,
+        input_fn: Callable[[str], str] | None = None,
+    ) -> None:
+        """Run this registry in interactive REPL mode."""
+        from functionals.cli.shell import InteractiveShell
+
+        shell = InteractiveShell(
+            self,
+            print_result=print_result,
+            prompt=prompt,
+            program_name=program_name,
+            input_fn=input_fn,
+        )
+        shell.run()
+        return None
 
     def clear(self) -> None:
         self._commands.clear()
@@ -300,6 +332,11 @@ class CommandRegistry:
             if normalized in HELP_RESERVED:
                 raise ValueError(
                     f"Option '{flag}' is reserved for the built-in help command."
+                )
+
+            if normalized in INTERACTIVE_RESERVED:
+                raise ValueError(
+                    f"Option '{flag}' is reserved for interactive mode entry."
                 )
 
             if normalized in self._commands and normalized != command_name:
@@ -420,9 +457,23 @@ class CommandRegistry:
             return self._aliases[guess]
         return guess
 
+    def suggest(self, token: str) -> str | None:
+        """Return the closest known command/alias for *token*, if any."""
+        return self._suggest(token)
+
     @staticmethod
     def _is_builtin_help_token(token: str) -> bool:
         return token in HELP_ALIASES
+
+    @staticmethod
+    def _stdin_is_interactive() -> bool:
+        isatty = getattr(sys.stdin, "isatty", None)
+        if callable(isatty):
+            try:
+                return bool(isatty())
+            except Exception:
+                return False
+        return False
 
     @staticmethod
     def _render_argument_type(annotation: Any) -> str:
@@ -456,10 +507,14 @@ class CommandRegistry:
             f"  {prog} {HELP_COMMAND_NAME} <command>",
             f"  {prog} --help",
             f"  {prog} -h",
+            f"  {prog} --interactive",
+            f"  {prog} -i",
             "",
             "Built-in Command",
             f"  {HELP_COMMAND_NAME}, --help, -h",
             "    Show this menu or detailed help for one command.",
+            "  --interactive, -i",
+            "    Start interactive REPL mode.",
             "",
         ]
 

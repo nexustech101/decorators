@@ -4,7 +4,8 @@ Public module-level decorators for ``functionals.cli``.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from functionals.cli.registry import CommandRegistry, MISSING
 
@@ -71,6 +72,23 @@ def run(argv: Sequence[str] | None = None, *, print_result: bool = True) -> Any:
     """Run the module-level default registry."""
 
     return _default_registry.run(argv, print_result=print_result)
+
+
+def run_shell(
+    *,
+    print_result: bool = True,
+    prompt: str = "cli> ",
+    program_name: str | None = None,
+    input_fn: Callable[[str], str] | None = None,
+) -> None:
+    """Run the module-level default registry in interactive mode."""
+
+    return _default_registry.run_shell(
+        print_result=print_result,
+        prompt=prompt,
+        program_name=program_name,
+        input_fn=input_fn,
+    )
 
 
 def list_commands() -> None:

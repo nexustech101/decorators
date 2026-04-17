@@ -144,6 +144,7 @@ def test_builtin_help_command_prints_professional_menu(capsys):
     assert "add" in out
     assert "update" in out
     assert "help <command>" in out
+    assert "--interactive" in out
 
 
 def test_builtin_help_aliases_print_menu(capsys):

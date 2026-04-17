@@ -24,6 +24,7 @@ from functionals.cli.decorators import (
     register,
     reset_registry,
     run,
+    run_shell,
 )
 from functionals.cli.dispatcher import Dispatcher
 from functionals.cli.exceptions import (
@@ -49,6 +50,7 @@ __all__ = [
     "argument",
     "option",
     "run",
+    "run_shell",
     "list_commands",
     "get_registry",
     "reset_registry",

@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
 ## Example 2
 
-Absolutely. Here’s a cleaner, more professional version with less repetition and clearer command names.
+Here is a cleaner, more professional version with less repetition and clearer command names.
 
 ```python
 from __future__ import annotations
@@ -208,12 +208,59 @@ If the same argument is passed twice with different values, parsing fails.
 ## Runtime Helpers
 
 - `cli.run(argv=None, print_result=True)` executes the default module registry.
+- `cli.run_shell(...)` starts an interactive REPL for the default module registry.
 - `cli.list_commands()` prints registered commands and aliases.
 - `cli.reset_registry()` clears registry state (useful in tests).
 - Built-in help command is always available: `help`, `--help`, and `-h`.
+
+## Interactive Mode
+
+When your app runs with no command-line arguments in an interactive terminal,
+`cli.run()` starts an interactive shell by default. In non-interactive contexts
+(for example CI or piped stdin), `cli.run()` still prints the normal help menu.
+
+You can force interactive mode explicitly:
+
+```bash
+python todo.py --interactive
+python todo.py -i
+```
+
+You can also call the shell directly:
+
+```python
+if __name__ == "__main__":
+    cli.run_shell()
+```
+
+Shell-local commands:
+
+- `help`
+- `help <command>`
+- `commands`
+- `exit`
+- `quit`
+
+Example:
+
+```text
+$ python todo.py
+Interactive mode. Type 'help' for commands, 'commands' to list registered commands, or 'exit' to quit.
+cli> commands
+Available commands:
+  add [--add, -a]: Create a todo item
+  list [--list, -l]: List todo items
+cli> add "Buy milk"
+Added: Buy milk (ID: 1)
+cli> help add
+Command Help: add
+...
+cli> quit
+```
 
 ## Error Handling
 
 - Unknown command: prints suggestion when available and exits with status `2`.
 - Parse errors: prints a specific error + command usage and exits with status `2`.
 - Handler crashes: wrapped as `CommandExecutionError` with exception chaining.
+

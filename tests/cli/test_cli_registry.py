@@ -121,3 +121,15 @@ def test_help_name_and_aliases_are_reserved():
         @cli.option("-h")
         def custom_help_short_alias() -> None:
             return None
+
+    with pytest.raises(ValueError, match="reserved"):
+        @cli.register(description="Reserved alias")
+        @cli.option("--interactive")
+        def custom_interactive_alias() -> None:
+            return None
+
+    with pytest.raises(ValueError, match="reserved"):
+        @cli.register(description="Reserved alias")
+        @cli.option("-i")
+        def custom_interactive_short_alias() -> None:
+            return None

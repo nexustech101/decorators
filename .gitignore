@@ -39,3 +39,4 @@ htmlcov/
 *.txt
 *P.md
 prototype.py
+todo.py

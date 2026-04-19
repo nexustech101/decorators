@@ -394,6 +394,13 @@ def run_project(
         package_name = discover_project_package(root_path)
         project = project_registry(root_path).get(root_path=str(root_path))
         project_type = getattr(project, "project_type", "")
+        src_root = root_path / "src"
+        has_src_package = bool(
+            package_name
+            and (src_root / package_name / "__init__.py").exists()
+        )
+        if has_src_package:
+            cwd = src_root
 
         has_cli_layout = bool(package_name and (root_path / "src" / package_name / "todo.py").exists()) or (root_path / "app.py").exists()
         has_db_layout = bool(package_name and (root_path / "src" / package_name / "api.py").exists()) or (root_path / "models.py").exists()

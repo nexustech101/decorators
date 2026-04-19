@@ -149,10 +149,10 @@ def test_fx_run_selects_cli_and_db_entrypoints(tmp_path: Path, monkeypatch: pyte
 
     assert calls
     assert calls[0][0][:3] == [sys.executable, "-m", "app"]
-    assert calls[0][1] == cli_root
+    assert calls[0][1] == cli_root / "src"
     assert calls[1][0][:4] == [sys.executable, "-m", "uvicorn", "app.api:app"]
     assert "--reload" in calls[1][0]
-    assert calls[1][1] == db_root
+    assert calls[1][1] == db_root / "src"
 
 
 def test_fx_install_builds_editable_install_commands(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

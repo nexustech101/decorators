@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-import functionals.cron as cron
-from functionals.cron import CronRegistry
-from functionals.cron.runtime import CronRuntimeEngine
-from functionals.cron.state import (
+import registers.cron as cron
+from registers.cron import CronRegistry
+from registers.cron.runtime import CronRuntimeEngine
+from registers.cron.state import (
     clear_state_caches,
     create_event,
     cron_event_registry,
@@ -146,8 +146,8 @@ async def test_instance_retry_exponential_uses_backoff_and_jitter(monkeypatch: p
 
     engine = CronRuntimeEngine(root=tmp_path, registry=registry)
 
-    monkeypatch.setattr("functionals.cron.runtime.random.uniform", lambda _a, _b: 1.5)
-    monkeypatch.setattr("functionals.cron.runtime.time.time", lambda: 1000.0)
+    monkeypatch.setattr("registers.cron.runtime.random.uniform", lambda _a, _b: 1.5)
+    monkeypatch.setattr("registers.cron.runtime.time.time", lambda: 1000.0)
 
     event = create_event(
         root=tmp_path,
@@ -166,10 +166,10 @@ async def test_instance_retry_exponential_uses_backoff_and_jitter(monkeypatch: p
     assert retry_meta["max_attempts"] == 3
     assert retry_meta["not_before_epoch"] == pytest.approx(1011.5)
 
-    monkeypatch.setattr("functionals.cron.runtime.time.time", lambda: 1010.0)
+    monkeypatch.setattr("registers.cron.runtime.time.time", lambda: 1010.0)
     assert engine._retry_event_ready(retry_payload) is False
 
-    monkeypatch.setattr("functionals.cron.runtime.time.time", lambda: 1012.0)
+    monkeypatch.setattr("registers.cron.runtime.time.time", lambda: 1012.0)
     assert engine._retry_event_ready(retry_payload) is True
 
 

@@ -1,7 +1,7 @@
 """
 tests/test_db_registry.py
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-Comprehensive test suite for functionals.db v2.
+Comprehensive test suite for registers.db v2.
 
 Covers:
 - Manager pattern (Model.objects)
@@ -24,7 +24,7 @@ from pydantic import BaseModel
 
 from conftest import db_url
 
-from functionals.db import (
+from registers.db import (
     BelongsTo,
     ConfigurationError,
     DatabaseRegistry,

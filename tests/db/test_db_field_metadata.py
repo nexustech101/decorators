@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import inspect
 
 from conftest import db_url
-from functionals.db import ConfigurationError, UniqueConstraintError, database_registry, db_field
+from registers.db import ConfigurationError, UniqueConstraintError, database_registry, db_field
 
 
 def test_db_field_index_creates_database_index(tmp_path):

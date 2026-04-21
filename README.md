@@ -1,12 +1,12 @@
 # Functionals
 
-[![PyPI version](https://img.shields.io/pypi/v/decorates)](https://pypi.org/project/decorates/)
-[![Python versions](https://img.shields.io/pypi/pyversions/decorates)](https://pypi.org/project/decorates/)
+[![PyPI version](https://img.shields.io/pypi/v/registers)](https://pypi.org/project/registers/)
+[![Python versions](https://img.shields.io/pypi/pyversions/registers)](https://pypi.org/project/registers/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Module](https://img.shields.io/badge/module-functionals-green)](#functionals)
-[![CLI](https://img.shields.io/badge/module-functionals.cli-blue)](#architecture)
-[![DB](https://img.shields.io/badge/module-functionals.db-darkorange)](#architecture)
-[![Cron](https://img.shields.io/badge/module-functionals.cron-purple)](#architecture)
+[![Module](https://img.shields.io/badge/module-registers-green)](#registers)
+[![CLI](https://img.shields.io/badge/module-registers.cli-blue)](#architecture)
+[![DB](https://img.shields.io/badge/module-registers.db-darkorange)](#architecture)
+[![Cron](https://img.shields.io/badge/module-registers.cron-purple)](#architecture)
 [![FX Tool](https://img.shields.io/badge/tool-fx--tool-black)](https://github.com/nexustech101/fx-tool)
 ![Tests](https://img.shields.io/badge/tests-200%2B%20unit%20tests-brightgreen)
 
@@ -27,12 +27,12 @@ This framework is for teams and developers who want one coherent toolkit for bac
 - Operational workflow support via `fx-tool`: run, install, update, pull plugins, and manage cron runtime.
 - Plugin architecture: organize command suites into modules and load them cleanly.
 - Production-minded behavior: structured state, health checks, operation history, and test coverage.
-- Projects that use `functionals.cli` module come with a built-in interactive shell.
+- Projects that use `registers.cli` module come with a built-in interactive shell.
 
 ## Install
 
 ```bash
-pip install decorates  # Package name is `decorates`; module name is `functionals`
+pip install registers  # Package name is `registers`; module name is `registers`
 ```
 
 Install the project manager (`fx-tool`) as a companion:
@@ -63,9 +63,9 @@ from __future__ import annotations
 from enum import StrEnum
 from time import strftime
 
-import functionals.cli as cli
-import functionals.db as db
-from functionals.db import db_field
+import registers.cli as cli
+import registers.db as db
+from registers.db import db_field
 from pydantic import BaseModel
 
 DB_PATH = "todos.db"
@@ -152,11 +152,11 @@ if __name__ == "__main__":
     )
 ```
 
-`functionals.cli` also supports explicit instance-mode registries for isolated
+`registers.cli` also supports explicit instance-mode registries for isolated
 command scopes:
 
 ```python
-import functionals.cli as cli
+import registers.cli as cli
 
 
 registry = cli.CommandRegistry()
@@ -219,7 +219,7 @@ For full `fx` usage, see the `fx-tool` docs in the separate repo.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from functionals.db import (
+from registers.db import (
     RecordNotFoundError,
     UniqueConstraintError,
     database_registry,
@@ -349,7 +349,7 @@ curl "http://localhost:8000/orders/desc?limit=20&offset=0"
 
 ## Cron + Workflow Operations
 
-Use `functionals.cron` decorators to define interval/cron/event jobs.
+Use `registers.cron` decorators to define interval/cron/event jobs.
 For runtime lifecycle and workflow operations (`start`, `status`, `generate`,
 `apply`, `register`, `run-workflow`), use `fx-tool`.
 
@@ -357,7 +357,7 @@ Both cron registration styles are supported:
 
 ```python
 # Module-level style
-import functionals.cron as cron
+import registers.cron as cron
 
 @cron.job(
     name="nightly",
@@ -375,7 +375,7 @@ def nightly() -> str:
 
 ```python
 # Explicit instance style
-from functionals.cron import CronRegistry
+from registers.cron import CronRegistry
 
 cron = CronRegistry()
 
@@ -395,13 +395,13 @@ Retry-capable jobs are moved to `dead_letter` state when max attempts are exhaus
 
 ## Architecture
 
-- `functionals.cli`
+- `registers.cli`
   Decorator-driven command registration (module facade + explicit registry instances), parser/dispatch, interactive shell, and plugin loading.
 
-- `functionals.db`
+- `registers.db`
   Decorator-driven persistence for Pydantic models with SQLAlchemy-backed storage and model manager patterns.
 
-- `functionals.cron`
+- `registers.cron`
   Decorator-driven interval/cron/event jobs with async runtime and deployment artifact generation.
 
 - `fx-tool` (separate package)
@@ -418,10 +418,10 @@ Retry-capable jobs are moved to `dead_letter` state when max attempts are exhaus
 ## Documentation
 
 - Project architecture spec: `PROJECT_SPEC.md`
-- CLI manual: `src/functionals/cli/USAGE.md`
-- DB manual: `src/functionals/db/USAGE.md`
+- CLI manual: `src/registers/cli/USAGE.md`
+- DB manual: `src/registers/db/USAGE.md`
 - FX tool docs (separate package): `https://github.com/nexustech101/fx-tool`
-- Cron manual: `src/functionals/cron/USAGE.md` (if present in your version)
+- Cron manual: `src/registers/cron/USAGE.md` (if present in your version)
 
 ## Roadmap and Planned Extensions
 

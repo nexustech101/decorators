@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-import functionals.cli as cli
-from functionals.cli import DependencyNotFoundError
-from functionals.cli.exceptions import DuplicateCommandError
+import registers.cli as cli
+from registers.cli import DependencyNotFoundError
+from registers.cli.exceptions import DuplicateCommandError
 
 
 class _Greeter:
@@ -171,7 +171,7 @@ def test_instance_discovery_load_plugins_targets_explicit_registry(tmp_path: Pat
     (package_dir / "alpha.py").write_text(
         "\n".join(
             [
-                "import functionals.cli as cli",
+                "import registers.cli as cli",
                 "@cli.register(description='Plugin ping')",
                 "@cli.option('--ping')",
                 "def ping() -> str:",

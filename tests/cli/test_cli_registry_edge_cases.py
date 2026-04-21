@@ -1,6 +1,6 @@
 import pytest
 
-import functionals.cli as cli
+import registers.cli as cli
 
 
 @pytest.fixture(autouse=True)

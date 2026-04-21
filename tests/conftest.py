@@ -15,12 +15,12 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from functionals.db import dispose_all
+from registers.db import dispose_all
 
 DOCKER_COMPOSE_FILE = ROOT / "docker-compose.test-db.yml"
 BACKEND_URLS = {
-    "postgres": "postgresql+psycopg://functionals:functionals@127.0.0.1:54329/functionals_test",
-    "mysql": "mysql+pymysql://functionals:functionals@127.0.0.1:33069/functionals_test",
+    "postgres": "postgresql+psycopg://registers:registers@127.0.0.1:54329/registers_test",
+    "mysql": "mysql+pymysql://registers:registers@127.0.0.1:33069/registers_test",
 }
 _DOCKER_UNAVAILABLE_MARKERS = (
     "error during connect",

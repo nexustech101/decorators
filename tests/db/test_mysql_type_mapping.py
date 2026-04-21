@@ -4,7 +4,7 @@ from sqlalchemy import Column, MetaData, Table
 from sqlalchemy.dialects import mysql
 from sqlalchemy.schema import CreateTable
 
-from functionals.db.typing_utils import sqlalchemy_type_for_annotation
+from registers.db.typing_utils import sqlalchemy_type_for_annotation
 
 
 def test_string_annotations_compile_on_mysql_with_bounded_varchar():

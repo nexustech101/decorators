@@ -4,10 +4,10 @@ import importlib
 from pathlib import Path
 from typing import Any
 
-import functionals.cli as cli
+import registers.cli as cli
 import pytest
 
-import functionals.cron.daemon as daemon_module
+import registers.cron.daemon as daemon_module
 
 
 @pytest.fixture()

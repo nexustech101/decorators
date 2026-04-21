@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-import functionals.cron as cron
-from functionals.cron.runtime import cron_matches, sync_project_jobs
-from functionals.cron.state import clear_state_caches, cron_job_registry
+import registers.cron as cron
+from registers.cron.runtime import cron_matches, sync_project_jobs
+from registers.cron.state import clear_state_caches, cron_job_registry
 
 
 @pytest.fixture(autouse=True)
@@ -27,7 +27,7 @@ def test_register_interval_job_and_sync_to_state(tmp_path: Path) -> None:
         "\n".join(
             [
                 "from __future__ import annotations",
-                "import functionals.cron as cron",
+                "import registers.cron as cron",
                 "@cron.job(name='nightly-build', trigger=cron.interval(minutes=5), target='local_async')",
                 "def nightly_build() -> str:",
                 "    return 'ok'",
@@ -81,7 +81,7 @@ def test_retry_configuration_persists_to_state(tmp_path: Path) -> None:
         "\n".join(
             [
                 "from __future__ import annotations",
-                "import functionals.cron as cron",
+                "import registers.cron as cron",
                 "@cron.job(",
                 "    name='deploy-prod',",
                 "    trigger=cron.event('manual'),",

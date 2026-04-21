@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from functionals.cron import CronRegistry
-from functionals.cron.runtime import sync_project_jobs
-from functionals.cron.state import clear_state_caches
+from registers.cron import CronRegistry
+from registers.cron.runtime import sync_project_jobs
+from registers.cron.state import clear_state_caches
 
 
 @pytest.fixture(autouse=True)
@@ -37,7 +37,7 @@ def test_sync_project_jobs_supports_explicit_registry_with_module_decorators(tmp
         "\n".join(
             [
                 "from __future__ import annotations",
-                "import functionals.cron as cron",
+                "import registers.cron as cron",
                 "@cron.job(name='default-style', trigger=cron.interval(minutes=1), target='local_async')",
                 "def default_style() -> str:",
                 "    return 'ok'",
@@ -63,7 +63,7 @@ def test_sync_project_jobs_supports_explicit_registry_with_instance_decorators(t
         "\n".join(
             [
                 "from __future__ import annotations",
-                "from functionals.cron import CronRegistry",
+                "from registers.cron import CronRegistry",
                 "cron = CronRegistry()",
                 "@cron.job(name='instance-style', trigger=cron.interval(minutes=1), target='local_async')",
                 "def instance_style() -> str:",

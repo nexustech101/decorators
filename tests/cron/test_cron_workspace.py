@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from functionals.cron.state import clear_state_caches, cron_event_registry, cron_run_registry
-from functionals.cron.workspace import (
+from registers.cron.state import clear_state_caches, cron_event_registry, cron_run_registry
+from registers.cron.workspace import (
     ensure_workspace,
     list_workflows,
     register_workflow,
@@ -93,7 +93,7 @@ def test_run_registered_workflow_command_mode_records_run(tmp_path: Path, monkey
         assert text is True
         return SimpleNamespace(returncode=0, stdout="ok\n", stderr="")
 
-    monkeypatch.setattr("functionals.cron.workspace.subprocess.run", _fake_run)
+    monkeypatch.setattr("registers.cron.workspace.subprocess.run", _fake_run)
 
     result = run_registered_workflow(root=tmp_path, name="cmd-workflow")
     assert result.status == "success"

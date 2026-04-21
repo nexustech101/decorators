@@ -1,7 +1,7 @@
 import pytest
 
-import functionals.cli as cli
-from functionals.cli import CommandExecutionError
+import registers.cli as cli
+from registers.cli import CommandExecutionError
 
 
 @pytest.fixture(autouse=True)
@@ -38,7 +38,7 @@ class TestCliErrorHandling:
             def isatty(self) -> bool:
                 return False
 
-        monkeypatch.setattr("functionals.cli.registry.sys.stdin", _PipeLikeStdin())
+        monkeypatch.setattr("registers.cli.registry.sys.stdin", _PipeLikeStdin())
 
         @cli.register(description="Noop")
         @cli.option("--noop")

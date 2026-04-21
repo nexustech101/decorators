@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from functionals.cron import CronRegistry, interval, event
-from functionals.cron.runtime import cron_matches, sync_project_jobs
-from functionals.cron.state import clear_state_caches, cron_job_registry
+from registers.cron import CronRegistry, interval, event
+from registers.cron.runtime import cron_matches, sync_project_jobs
+from registers.cron.state import clear_state_caches, cron_job_registry
 
 cron = CronRegistry()  # Use a fresh registry instance for testing
 
@@ -38,7 +38,7 @@ def test_register_interval_job_and_sync_to_state(tmp_path: Path) -> None:
         "\n".join(
             [
                 "from __future__ import annotations",
-                "from functionals.cron import CronRegistry, interval",
+                "from registers.cron import CronRegistry, interval",
                 "cron = CronRegistry()",
                 "@cron.job(name='nightly-build', trigger=interval(minutes=5), target='local_async')",
                 "def nightly_build() -> str:",

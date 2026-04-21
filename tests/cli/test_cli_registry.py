@@ -1,7 +1,7 @@
 import pytest
 
-import functionals.cli as cli
-from functionals.cli.exceptions import DuplicateCommandError
+import registers.cli as cli
+from registers.cli.exceptions import DuplicateCommandError
 
 
 @pytest.fixture(autouse=True)

@@ -3,8 +3,8 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "decorates"
-version = "6.0.0"
+name = "registers"
+version = "6.1.0"
 description = "Decorator-driven CLI and database toolkit for Pydantic and SQLAlchemy."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -43,8 +43,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nexustech101/functionals"
-Repository = "https://github.com/nexustech101/functionals"
+Homepage = "https://github.com/nexustech101/registers"
+Repository = "https://github.com/nexustech101/registers"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -53,11 +53,11 @@ asyncio_mode = "auto"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["functionals*"]
+include = ["registers*"]
 exclude = ["*.tests*", "*.tests.*"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}  # Container for package modules
 
 [tool.setuptools.package-data]
-functionals = ["py.typed"]
+registers = ["py.typed"]

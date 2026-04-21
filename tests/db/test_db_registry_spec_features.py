@@ -10,8 +10,8 @@ import pytest
 from pydantic import BaseModel
 
 from conftest import db_url
-from functionals.db import InvalidQueryError, UniqueConstraintError, database_registry
-from functionals.db.engine import dialect_insert
+from registers.db import InvalidQueryError, UniqueConstraintError, database_registry
+from registers.db.engine import dialect_insert
 
 
 class TestDialectInsert:

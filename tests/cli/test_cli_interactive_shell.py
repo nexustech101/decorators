@@ -1,8 +1,8 @@
 import os
 import pytest
 
-import functionals.cli as cli
-from functionals.cli.shell import _strip_terminal_escapes, _wrap_ansi_for_readline
+import registers.cli as cli
+from registers.cli.shell import _strip_terminal_escapes, _wrap_ansi_for_readline
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +44,7 @@ def _register_interactive_commands() -> None:
 
 
 def test_empty_argv_enters_shell_when_tty(monkeypatch):
-    monkeypatch.setattr("functionals.cli.registry.sys.stdin", _TTYStdin())
+    monkeypatch.setattr("registers.cli.registry.sys.stdin", _TTYStdin())
 
     called: dict[str, object] = {}
 
@@ -61,7 +61,7 @@ def test_empty_argv_enters_shell_when_tty(monkeypatch):
 
 
 def test_empty_argv_shows_help_when_not_tty(monkeypatch, capsys):
-    monkeypatch.setattr("functionals.cli.registry.sys.stdin", _PipeLikeStdin())
+    monkeypatch.setattr("registers.cli.registry.sys.stdin", _PipeLikeStdin())
 
     @cli.register(description="Noop")
     @cli.option("--noop")
@@ -179,7 +179,7 @@ def test_interactive_mode_can_print_help_menu_on_startup(capsys):
 def test_interactive_mode_renders_banner_by_default(monkeypatch, capsys):
     _register_interactive_commands()
 
-    monkeypatch.setattr("functionals.cli.shell._render_banner", lambda text: f"FIGLET::{text}")
+    monkeypatch.setattr("registers.cli.shell._render_banner", lambda text: f"FIGLET::{text}")
 
     cli.run_shell(
         input_fn=_input_from_lines(["exit"]),
@@ -193,7 +193,7 @@ def test_interactive_mode_renders_banner_by_default(monkeypatch, capsys):
 
 def test_interactive_mode_can_disable_banner(monkeypatch, capsys):
     _register_interactive_commands()
-    monkeypatch.setattr("functionals.cli.shell._render_banner", lambda text: f"FIGLET::{text}")
+    monkeypatch.setattr("registers.cli.shell._render_banner", lambda text: f"FIGLET::{text}")
 
     cli.run_shell(
         input_fn=_input_from_lines(["quit"]),
@@ -260,7 +260,7 @@ def test_interactive_mode_title_and_description_are_configurable(capsys):
 
 def test_interactive_mode_supports_legacy_banner_text_alias(monkeypatch, capsys):
     _register_interactive_commands()
-    monkeypatch.setattr("functionals.cli.shell._render_banner", lambda text: f"FIGLET::{text}")
+    monkeypatch.setattr("registers.cli.shell._render_banner", lambda text: f"FIGLET::{text}")
 
     cli.run_shell(
         input_fn=_input_from_lines(["exit"]),
@@ -292,7 +292,7 @@ def test_run_supports_cli_args_even_when_shell_options_are_provided():
 
 def test_run_supports_interactive_shell_with_custom_branding(monkeypatch, capsys):
     _register_interactive_commands()
-    monkeypatch.setattr("functionals.cli.registry.sys.stdin", _TTYStdin())
+    monkeypatch.setattr("registers.cli.registry.sys.stdin", _TTYStdin())
 
     cli.run(
         [],
@@ -417,7 +417,7 @@ def test_interactive_mode_supports_exec_builtin(capsys, monkeypatch):
         calls.append(argv)
         return _Result()
 
-    monkeypatch.setattr("functionals.cli.shell.subprocess.run", _fake_run)
+    monkeypatch.setattr("registers.cli.shell.subprocess.run", _fake_run)
 
     cli.run_shell(
         input_fn=_input_from_lines(["exec echo hello world", "quit"]),
@@ -456,8 +456,8 @@ def test_exec_falls_back_to_cmd_when_powershell_missing(capsys, monkeypatch):
             raise FileNotFoundError("powershell missing")
         return _Result()
 
-    monkeypatch.setattr("functionals.cli.shell._is_windows", lambda: True)
-    monkeypatch.setattr("functionals.cli.shell.subprocess.run", _fake_run)
+    monkeypatch.setattr("registers.cli.shell._is_windows", lambda: True)
+    monkeypatch.setattr("registers.cli.shell.subprocess.run", _fake_run)
 
     cli.run_shell(
         input_fn=_input_from_lines(["exec echo from-cmd", "quit"]),

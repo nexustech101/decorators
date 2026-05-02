@@ -37,7 +37,7 @@ from contextlib import contextmanager
 from dataclasses import replace
 import logging
 from pathlib import Path
-from typing import Any, Generator, Generic, Mapping, TypeVar
+from typing import Any, Callable, Generator, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from sqlalchemy import Column, ForeignKey, Index, MetaData, Table, delete, func, inspect, select, update
@@ -52,6 +52,7 @@ from registers.db.exceptions import (
     InvalidPrimaryKeyAssignmentError,
     InvalidQueryError,
     MigrationError,
+    ModelRegistrationError,
     RecordNotFoundError,
     SchemaError,
     UniqueConstraintError,
@@ -60,8 +61,9 @@ from registers.db.fields import get_db_field_metadata
 from registers.db.metadata import RegistryConfig
 from registers.db.operators import VALID_OPERATORS, is_iterable_value, parse_criterion, split_field_expr
 from registers.db.schema import SchemaManager
-from registers.db.security import hash_password, is_password_hash
+from registers.db.security import hash_password, is_password_hash, verify_password as verify_password_value
 from registers.db.typing_utils import (
+    annotation_is_integer,
     default_database_url,
     default_table_name,
     field_allows_none,
@@ -75,7 +77,7 @@ _PASSWORD_FIELD = "password"
 logger = logging.getLogger(__name__)
 
 
-class DatabaseRegistry(Generic[ModelT]):
+class _ModelManager(Generic[ModelT]):
     """
     SQLite-backed (and SQLAlchemy-compatible) persistence manager for a
     Pydantic model class.
@@ -93,10 +95,8 @@ class DatabaseRegistry(Generic[ModelT]):
         user.save()      # instance method injected by decorator
         user.delete()    # instance method injected by decorator
 
-    You can also use the registry directly without the decorator::
-
-        registry = DatabaseRegistry(User, "app.db", table_name="users")
-        user = registry.create(name="Bob")
+    This class is internal; use ``DatabaseRegistry().database_registry(...)``
+    or module-level ``@database_registry(...)`` for public usage.
     """
 
     def __init__(
@@ -141,7 +141,7 @@ class DatabaseRegistry(Generic[ModelT]):
         if auto_create:
             self._schema.create_schema(strict=False, include_all_metadata=True)
 
-    def get_registry(self) -> DatabaseRegistry[ModelT]:
+    def get_registry(self) -> _ModelManager[ModelT]:
         """Return this manager instance for contract parity with other registries."""
         return self
 
@@ -1193,8 +1193,192 @@ class DatabaseRegistry(Generic[ModelT]):
 
     def __repr__(self) -> str:
         return (
-            f"DatabaseRegistry("
+            f"_ModelManager("
             f"model={self.model_cls.__name__!r}, "
             f"table={self.table_name!r}, "
             f"url={self.database_url!r})"
         )
+
+
+class DatabaseRegistry:
+    """
+    Coordinator for model registrations within one logical DB namespace.
+
+    Create one instance and register models through ``@db.database_registry(...)``.
+    Registered models still receive the same manager API on ``Model.objects``.
+    """
+
+    _OWNER_MARKER = "__registers_db_owner__"
+
+    def __init__(self) -> None:
+        self._managers: dict[type[BaseModel], _ModelManager[Any]] = {}
+
+    def get_registry(self) -> DatabaseRegistry:
+        return self
+
+    def all(self) -> dict[type[BaseModel], _ModelManager[Any]]:
+        return dict(self._managers)
+
+    def clear(self) -> None:
+        self._managers.clear()
+
+    def reset_registry(self) -> None:
+        self.clear()
+
+    def database_registry(
+        self,
+        database_url: str | Path | None = None,
+        *,
+        table_name: str | None = None,
+        key_field: str = "id",
+        manager_attr: str = "objects",
+        auto_create: bool = True,
+        autoincrement: bool = False,
+        unique_fields: list[str] | tuple[str, ...] = (),
+    ) -> Callable[[type[ModelT]], type[ModelT]]:
+        def decorator(model_cls: type[ModelT]) -> type[ModelT]:
+            self._assert_valid_model(model_cls)
+            self._assert_model_owner_available(model_cls)
+
+            resolved_autoincrement = autoincrement
+            if not resolved_autoincrement and key_field == "id":
+                field = model_cls.model_fields.get(key_field)
+                if (
+                    field is not None
+                    and annotation_is_integer(field.annotation)
+                    and field_allows_none(field)
+                ):
+                    resolved_autoincrement = True
+
+            manager = _ModelManager(
+                model_cls,
+                database_url=database_url,
+                table_name=table_name,
+                key_field=key_field,
+                manager_attr=manager_attr,
+                auto_create=auto_create,
+                autoincrement=resolved_autoincrement,
+                unique_fields=tuple(unique_fields),
+            )
+
+            self._safe_setattr(model_cls, manager_attr, manager)
+            self._inject_instance_methods(model_cls, manager, key_field)
+            self._inject_schema_forwarders(model_cls, manager)
+
+            self._managers[model_cls] = manager
+            setattr(model_cls, self._OWNER_MARKER, id(self))
+            return model_cls
+
+        return decorator
+
+    def _assert_model_owner_available(self, model_cls: type[BaseModel]) -> None:
+        owner_id = getattr(model_cls, self._OWNER_MARKER, None)
+        if owner_id is None or owner_id == id(self):
+            return
+        raise ModelRegistrationError(
+            f"Model '{model_cls.__name__}' is already registered by another "
+            "DatabaseRegistry instance.",
+            model=model_cls.__name__,
+            details={"owner_conflict": True},
+        )
+
+    @staticmethod
+    def _assert_valid_model(model_cls: type) -> None:
+        if not (isinstance(model_cls, type) and issubclass(model_cls, BaseModel)):
+            logger.error("Invalid model registration target: %r", model_cls)
+            raise ModelRegistrationError(
+                "@database_registry can only decorate Pydantic BaseModel subclasses."
+            )
+        if hasattr(model_cls, "__dataclass_fields__"):
+            logger.error(
+                "Invalid model '%s': stdlib dataclass cannot be combined with BaseModel.",
+                getattr(model_cls, "__name__", repr(model_cls)),
+            )
+            raise ModelRegistrationError(
+                "Do not combine stdlib @dataclass with pydantic.BaseModel. "
+                "Define the model as a plain `class User(BaseModel): ...`."
+            )
+
+    @staticmethod
+    def _safe_setattr(model_cls: type, name: str, value: Any) -> None:
+        in_dict = name in model_cls.__dict__
+        in_pydantic_fields = name in model_cls.model_fields
+
+        if in_dict or in_pydantic_fields:
+            source = "a Pydantic field" if in_pydantic_fields else "a class attribute"
+            logger.error(
+                "Attribute collision while attaching '%s' to model '%s' (%s).",
+                name,
+                model_cls.__name__,
+                source,
+            )
+            raise ModelRegistrationError(
+                f"Cannot attach '{name}' to '{model_cls.__name__}' - "
+                f"it is already defined as {source} on the model. "
+                "Choose a different manager_attr or rename the conflicting attribute."
+            )
+        setattr(model_cls, name, value)
+
+    @classmethod
+    def _inject_instance_methods(
+        cls,
+        model_cls: type[ModelT],
+        manager: _ModelManager[ModelT],
+        key_field: str,
+    ) -> None:
+        def save(self: ModelT) -> ModelT:
+            updated = manager.save(self)
+            for field in type(self).model_fields:
+                object.__setattr__(self, field, getattr(updated, field))
+            return self
+
+        def delete(self: ModelT) -> bool:
+            return manager.delete(getattr(self, key_field))
+
+        def refresh(self: ModelT) -> ModelT:
+            return manager.refresh(self)
+
+        injected_methods: list[tuple[str, Callable[..., Any]]] = [
+            ("save", save),
+            ("delete", delete),
+            ("refresh", refresh),
+        ]
+
+        if "password" in model_cls.model_fields:
+            def verify_password(self: ModelT, candidate: str) -> bool:
+                return verify_password_value(candidate, getattr(self, "password"))
+
+            injected_methods.append(("verify_password", verify_password))
+
+        for method_name, method in injected_methods:
+            cls._safe_setattr(model_cls, method_name, method)
+
+    @classmethod
+    def _inject_schema_forwarders(
+        cls,
+        model_cls: type[ModelT],
+        manager: _ModelManager[ModelT],
+    ) -> None:
+        @classmethod  # type: ignore[misc]
+        def create_schema(_model_cls: type[ModelT]) -> None:
+            manager.create_schema()
+
+        @classmethod  # type: ignore[misc]
+        def drop_schema(_model_cls: type[ModelT]) -> None:
+            manager.drop_schema()
+
+        @classmethod  # type: ignore[misc]
+        def schema_exists(_model_cls: type[ModelT]) -> bool:
+            return manager.schema_exists()
+
+        @classmethod  # type: ignore[misc]
+        def truncate(_model_cls: type[ModelT]) -> None:
+            manager.truncate()
+
+        for name, method in [
+            ("create_schema", create_schema),
+            ("drop_schema", drop_schema),
+            ("schema_exists", schema_exists),
+            ("truncate", truncate),
+        ]:
+            cls._safe_setattr(model_cls, name, method)

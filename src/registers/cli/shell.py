@@ -16,7 +16,7 @@ import subprocess
 import sys
 from typing import Any, get_args, get_origin
 
-from registers.cli.exceptions import CommandExecutionError, FrameworkError, UnknownCommandError
+from registers.cli.exceptions import CommandExecutionError, RegistrationError, UnknownCommandError
 from registers.cli.parser import ParseError, parse_command_args, render_command_usage
 from registers.cli.registry import HELP_ALIASES, MISSING
 
@@ -421,7 +421,7 @@ class InteractiveShell:
 
         try:
             result = entry.handler(**kwargs)
-        except FrameworkError as exc:
+        except RegistrationError as exc:
             self._error(str(exc))
             return
         except Exception as exc:

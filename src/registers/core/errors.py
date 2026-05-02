@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Any
 
 
-class FrameworkErrorBase(Exception):
+class RegistrationErrorBase(Exception):
     """
     Base error with optional structured context payload.
 

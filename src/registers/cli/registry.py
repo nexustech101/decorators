@@ -17,7 +17,7 @@ import sys
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Sequence, get_args, get_origin
 
-from registers.cli.exceptions import CommandExecutionError, DuplicateCommandError, FrameworkError, UnknownCommandError
+from registers.cli.exceptions import CommandExecutionError, DuplicateCommandError, RegistrationError, UnknownCommandError
 from registers.core.logging import log_exception
 from registers.cli.utils.reflection import get_params
 from registers.cli.utils.typing import is_bool_flag, is_optional
@@ -494,7 +494,7 @@ class CommandRegistry:
 
         try:
             result = entry.handler(**kwargs)
-        except FrameworkError:
+        except RegistrationError:
             raise
         except Exception as exc:
             log_exception(

@@ -52,7 +52,8 @@ class TestManagerAttachment:
             id: int
             name: str
 
-        assert isinstance(User.objects, DatabaseRegistry)
+        assert hasattr(User.objects, "create")
+        assert hasattr(User.objects, "filter")
 
     def test_custom_manager_attr(self, tmp_path):
         @database_registry(db_url(tmp_path), table_name="items", key_field="id",
@@ -61,7 +62,8 @@ class TestManagerAttachment:
             id: int
             name: str
 
-        assert isinstance(Item.db, DatabaseRegistry)
+        assert hasattr(Item.db, "create")
+        assert hasattr(Item.db, "filter")
         assert not hasattr(Item, "objects")
 
     def test_manager_attr_collision_raises(self, tmp_path):
@@ -573,18 +575,20 @@ class TestSchema:
 
 class TestDirectRegistry:
     def test_create_and_retrieve(self, tmp_path):
-        class User(BaseModel):
-            id: int | None = None
-            email: str
+        db = DatabaseRegistry()
 
-        registry = DatabaseRegistry(
-            User,
+        @db.database_registry(
             db_url(tmp_path),
             table_name="users",
             key_field="id",
             autoincrement=True,
             unique_fields=("email",),
         )
+        class User(BaseModel):
+            id: int | None = None
+            email: str
+
+        registry = User.objects
 
         alice = registry.create(email="a@example.com")
         assert alice.id == 1

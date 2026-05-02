@@ -12,7 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from registers.db import DatabaseRegistry
+from registers.db.registry import _ModelManager
 
 
 def utc_now() -> str:
@@ -120,8 +120,8 @@ def _db_file(root: str | Path | None = None) -> str:
 
 
 @lru_cache(maxsize=64)
-def _job_registry(db_file: str) -> DatabaseRegistry[CronJobRecord]:
-    return DatabaseRegistry(
+def _job_registry(db_file: str) -> _ModelManager[CronJobRecord]:
+    return _ModelManager(
         CronJobRecord,
         db_file,
         table_name="fx_cron_jobs",
@@ -132,8 +132,8 @@ def _job_registry(db_file: str) -> DatabaseRegistry[CronJobRecord]:
 
 
 @lru_cache(maxsize=64)
-def _run_registry(db_file: str) -> DatabaseRegistry[CronRunRecord]:
-    return DatabaseRegistry(
+def _run_registry(db_file: str) -> _ModelManager[CronRunRecord]:
+    return _ModelManager(
         CronRunRecord,
         db_file,
         table_name="fx_cron_runs",
@@ -143,8 +143,8 @@ def _run_registry(db_file: str) -> DatabaseRegistry[CronRunRecord]:
 
 
 @lru_cache(maxsize=64)
-def _event_registry(db_file: str) -> DatabaseRegistry[CronEventRecord]:
-    return DatabaseRegistry(
+def _event_registry(db_file: str) -> _ModelManager[CronEventRecord]:
+    return _ModelManager(
         CronEventRecord,
         db_file,
         table_name="fx_cron_events",
@@ -154,8 +154,8 @@ def _event_registry(db_file: str) -> DatabaseRegistry[CronEventRecord]:
 
 
 @lru_cache(maxsize=64)
-def _runtime_registry(db_file: str) -> DatabaseRegistry[CronRuntimeRecord]:
-    return DatabaseRegistry(
+def _runtime_registry(db_file: str) -> _ModelManager[CronRuntimeRecord]:
+    return _ModelManager(
         CronRuntimeRecord,
         db_file,
         table_name="fx_cron_runtime",
@@ -166,8 +166,8 @@ def _runtime_registry(db_file: str) -> DatabaseRegistry[CronRuntimeRecord]:
 
 
 @lru_cache(maxsize=64)
-def _workflow_registry(db_file: str) -> DatabaseRegistry[CronWorkflowRecord]:
-    return DatabaseRegistry(
+def _workflow_registry(db_file: str) -> _ModelManager[CronWorkflowRecord]:
+    return _ModelManager(
         CronWorkflowRecord,
         db_file,
         table_name="fx_cron_workflows",
@@ -177,23 +177,23 @@ def _workflow_registry(db_file: str) -> DatabaseRegistry[CronWorkflowRecord]:
     )
 
 
-def cron_job_registry(root: str | Path | None = None) -> DatabaseRegistry[CronJobRecord]:
+def cron_job_registry(root: str | Path | None = None) -> _ModelManager[CronJobRecord]:
     return _job_registry(_db_file(root))
 
 
-def cron_run_registry(root: str | Path | None = None) -> DatabaseRegistry[CronRunRecord]:
+def cron_run_registry(root: str | Path | None = None) -> _ModelManager[CronRunRecord]:
     return _run_registry(_db_file(root))
 
 
-def cron_event_registry(root: str | Path | None = None) -> DatabaseRegistry[CronEventRecord]:
+def cron_event_registry(root: str | Path | None = None) -> _ModelManager[CronEventRecord]:
     return _event_registry(_db_file(root))
 
 
-def cron_runtime_registry(root: str | Path | None = None) -> DatabaseRegistry[CronRuntimeRecord]:
+def cron_runtime_registry(root: str | Path | None = None) -> _ModelManager[CronRuntimeRecord]:
     return _runtime_registry(_db_file(root))
 
 
-def cron_workflow_registry(root: str | Path | None = None) -> DatabaseRegistry[CronWorkflowRecord]:
+def cron_workflow_registry(root: str | Path | None = None) -> _ModelManager[CronWorkflowRecord]:
     return _workflow_registry(_db_file(root))
 
 

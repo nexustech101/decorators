@@ -24,13 +24,16 @@ def test_cli_and_cron_registry_lifecycle_contracts() -> None:
 
 
 def test_db_registry_accessor_contract(tmp_path: Path) -> None:
-    registry = DatabaseRegistry(
-        ContractModel,
+    registry = DatabaseRegistry()
+
+    @registry.database_registry(
         tmp_path / "contracts.db",
         table_name="contract_models",
         key_field="id",
         autoincrement=True,
     )
+    class _ContractModel(ContractModel):
+        pass
 
     assert isinstance(registry, RegistryAccessorContract)
     assert registry.get_registry() is registry

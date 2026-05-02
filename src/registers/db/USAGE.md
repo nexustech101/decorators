@@ -51,7 +51,7 @@ Primary target use cases:
 Two supported construction styles:
 
 1. Decorator-first (recommended)
-2. Direct manager construction (`DatabaseRegistry(...)`) for explicit wiring
+2. Instance-owned decorator registration (`db = DatabaseRegistry(); @db.database_registry(...)`) for explicit wiring
 
 **Summary**: define models with Pydantic, persist through the attached manager, and treat instance helpers as convenience wrappers over manager behavior.
 
@@ -146,34 +146,33 @@ Expected behavior:
 
 ---
 
-## 6. Quick Start (Direct `DatabaseRegistry` Mode)
+## 6. Quick Start (Instance `DatabaseRegistry` Mode)
 
 ```python
 from pydantic import BaseModel
 from registers.db import DatabaseRegistry
 
+db = DatabaseRegistry()
 
-class User(BaseModel):
-    id: int | None = None
-    email: str
-    name: str
-
-
-users = DatabaseRegistry(
-    User,
+@db.database_registry(
     "sqlite:///app.db",
     table_name="users",
     key_field="id",
     autoincrement=True,
     unique_fields=["email"],
 )
+class User(BaseModel):
+    id: int | None = None
+    email: str
+    name: str
 
-user = users.create(email="alice@example.com", name="Alice")
+user = User.objects.create(email="alice@example.com", name="Alice")
 ```
 
-Use this style when you need explicit manager instances without decorator injection.
+Use this style when you want explicit registry ownership and isolated model sets.
+Create one `DatabaseRegistry()` per DB namespace.
 
-**Summary**: direct registry mode is an advanced integration path; functionally similar manager API, explicit ownership.
+**Summary**: instance registry mode is the preferred explicit wiring pattern; it behaves like module-level `@database_registry(...)` but is scoped to that registry instance.
 
 ---
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from registers.core.errors import FrameworkErrorBase
+from registers.core.errors import RegistrationErrorBase
 
 
 def log_exception(
@@ -22,7 +22,7 @@ def log_exception(
     Log an exception with structured context in a backend-agnostic way.
     """
     payload = {key: value for key, value in context.items() if value is not None}
-    if isinstance(error, FrameworkErrorBase):
+    if isinstance(error, RegistrationErrorBase):
         payload.setdefault("error_type", type(error).__name__)
         payload.update(error.context)
 

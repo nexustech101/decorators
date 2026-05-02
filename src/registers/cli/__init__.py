@@ -44,7 +44,7 @@ from registers.cli.exceptions import (
     CommandExecutionError,
     DependencyNotFoundError,
     DuplicateCommandError,
-    FrameworkError,
+    RegistrationError,
     PluginLoadError,
     UnknownCommandError,
 )
@@ -89,7 +89,7 @@ __all__ = [
     "CommandExecutionError",
     "DependencyNotFoundError",
     "DuplicateCommandError",
-    "FrameworkError",
+    "RegistrationError",
     "PluginLoadError",
     "UnknownCommandError",
 ]

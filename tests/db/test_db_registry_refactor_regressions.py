@@ -5,8 +5,10 @@ from pydantic import BaseModel
 
 from conftest import db_url
 from registers.db import (
+    DatabaseRegistry,
     InvalidPrimaryKeyAssignmentError,
     InvalidQueryError,
+    ModelRegistrationError,
     SchemaError,
     database_registry,
     db_field,
@@ -167,3 +169,52 @@ def test_fk_orphan_write_raises_schema_error(tmp_path):
 
     with pytest.raises(SchemaError, match="Database integrity error"):
         RefreshSession.objects.create(user_id=9999, token_jti="bad-jti")
+
+
+def test_instance_registry_decorator_happy_path(tmp_path):
+    db = DatabaseRegistry()
+
+    @db.database_registry(db_url(tmp_path), table_name="users", key_field="id")
+    class User(BaseModel):
+        id: int | None = None
+        email: str
+
+    created = User.objects.create(email="alice@example.com")
+    fetched = User.objects.require(created.id)
+
+    assert fetched.email == "alice@example.com"
+    assert db.all()[User] is User.objects
+
+
+def test_two_registry_instances_can_manage_different_databases(tmp_path):
+    db_one = DatabaseRegistry()
+    db_two = DatabaseRegistry()
+
+    @db_one.database_registry(db_url(tmp_path, "one"), table_name="users_one", key_field="id")
+    class UserOne(BaseModel):
+        id: int | None = None
+        email: str
+
+    @db_two.database_registry(db_url(tmp_path, "two"), table_name="users_two", key_field="id")
+    class UserTwo(BaseModel):
+        id: int | None = None
+        email: str
+
+    UserOne.objects.create(email="one@example.com")
+    UserTwo.objects.create(email="two@example.com")
+
+    assert UserOne.objects.count() == 1
+    assert UserTwo.objects.count() == 1
+
+
+def test_same_model_cannot_be_registered_by_multiple_instances(tmp_path):
+    db_one = DatabaseRegistry()
+    db_two = DatabaseRegistry()
+
+    @db_one.database_registry(db_url(tmp_path, "one"), table_name="users", key_field="id")
+    class User(BaseModel):
+        id: int | None = None
+        email: str
+
+    with pytest.raises(ModelRegistrationError, match="already registered by another"):
+        db_two.database_registry(db_url(tmp_path, "two"), table_name="users", key_field="id")(User)

@@ -220,28 +220,29 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from registers.db import (
+    DatabaseRegistry,
     RecordNotFoundError,
     UniqueConstraintError,
-    database_registry,
 )
 
 DB_URL = "sqlite:///shop.db"
+db = DatabaseRegistry()
 
 # --- Models ---
 
-@database_registry(DB_URL, table_name="customers", unique_fields=["email"])
+@db.database_registry(DB_URL, table_name="customers", unique_fields=["email"])
 class Customer(BaseModel):
     id: int | None = None
     name: str
     email: str
 
-@database_registry(DB_URL, table_name="products")
+@db.database_registry(DB_URL, table_name="products")
 class Product(BaseModel):
     id: int | None = None
     name: str
     price: float
 
-@database_registry(DB_URL, table_name="orders")
+@db.database_registry(DB_URL, table_name="orders")
 class Order(BaseModel):
     id: int | None = None
     customer_id: int

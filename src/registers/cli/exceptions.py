@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from registers.core.errors import FrameworkErrorBase
+from registers.core.errors import RegistrationErrorBase
 
 
-class FrameworkError(FrameworkErrorBase):
+class RegistrationError(RegistrationErrorBase):
     """Base class for all registers CLI errors."""
 
     def __init__(
@@ -28,7 +28,7 @@ class FrameworkError(FrameworkErrorBase):
         )
 
 
-class DuplicateCommandError(FrameworkError):
+class DuplicateCommandError(RegistrationError):
     """Raised when a command name is registered more than once."""
 
     def __init__(self, name: str) -> None:
@@ -36,7 +36,7 @@ class DuplicateCommandError(FrameworkError):
         self.name = name
 
 
-class UnknownCommandError(FrameworkError):
+class UnknownCommandError(RegistrationError):
     """Raised when a requested command has no registered handler."""
 
     def __init__(self, name: str) -> None:
@@ -44,7 +44,7 @@ class UnknownCommandError(FrameworkError):
         self.name = name
 
 
-class DependencyNotFoundError(FrameworkError):
+class DependencyNotFoundError(RegistrationError):
     """Raised when the DI container cannot resolve a requested type."""
 
     def __init__(self, dep_type: Any) -> None:
@@ -57,7 +57,7 @@ class DependencyNotFoundError(FrameworkError):
         self.dep_type = dep_type
 
 
-class CommandExecutionError(FrameworkError):
+class CommandExecutionError(RegistrationError):
     """Raised by CommandRegistry.run() when a handler fails unexpectedly."""
 
     def __init__(self, command: str, reason: str) -> None:
@@ -70,7 +70,7 @@ class CommandExecutionError(FrameworkError):
         self.reason = reason
 
 
-class PluginLoadError(FrameworkError):
+class PluginLoadError(RegistrationError):
     """Raised when a plugin module fails to import."""
 
     def __init__(self, module_path: str, reason: str) -> None:

@@ -7,11 +7,11 @@ from registers.core.contracts import (
     RegistryCollectionContract,
     RegistryLifecycleContract,
 )
-from registers.core.errors import FrameworkErrorBase
+from registers.core.errors import RegistrationErrorBase
 from registers.core.logging import log_exception
 
 __all__ = [
-    "FrameworkErrorBase",
+    "RegistrationErrorBase",
     "log_exception",
     "RegistryAccessorContract",
     "RegistryCollectionContract",

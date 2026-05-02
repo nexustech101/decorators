@@ -13,7 +13,7 @@ import inspect
 import logging
 from typing import Any
 
-from registers.cli.exceptions import DependencyNotFoundError, FrameworkError
+from registers.cli.exceptions import DependencyNotFoundError, RegistrationError
 from registers.cli.middleware import MiddlewareChain
 from registers.cli.container import DIContainer
 from registers.cli.registry import CommandRegistry
@@ -78,7 +78,7 @@ class Dispatcher:
             self._middleware.run_post(command, result)
             logger.debug("Command '%s' dispatched successfully.", command)
             return result
-        except FrameworkError:
+        except RegistrationError:
             logger.warning("Framework-level dispatch failure for command '%s'.", command, exc_info=True)
             raise
         except Exception:

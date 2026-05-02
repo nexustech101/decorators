@@ -91,8 +91,8 @@ class TodoItem(BaseModel):
 @cli.register(name="add", description="Create a todo item")
 @cli.argument("title", type=str, help="Todo title")
 @cli.argument("description", type=str, default="", help="Todo description")
-@cli.option("--add")
-@cli.option("-a")
+@cli.alias("--add")
+@cli.alias("-a")
 def add_todo(title: str, description: str = "") -> str:
     todo = TodoItem(title=title, description=description)
     todo.save()
@@ -100,8 +100,8 @@ def add_todo(title: str, description: str = "") -> str:
 
 
 @cli.register(name="list", description="List todo items")
-@cli.option("--list")
-@cli.option("-l")
+@cli.alias("--list")
+@cli.alias("-l")
 def list_todos() -> str:
     todos = TodoItem.objects.all()
     if not todos:
@@ -111,8 +111,8 @@ def list_todos() -> str:
 
 @cli.register(name="complete", description="Mark a todo item as completed")
 @cli.argument("todo_id", type=int, help="Todo ID")
-@cli.option("--complete")
-@cli.option("-c")
+@cli.alias("--complete")
+@cli.alias("-c")
 def complete_todo(todo_id: int) -> str:
     todo = TodoItem.objects.get(id=todo_id)
     if not todo:
@@ -128,8 +128,8 @@ def complete_todo(todo_id: int) -> str:
 @cli.argument("todo_id", type=int, help="Todo ID")
 @cli.argument("title", type=str, default=None, help="New title")
 @cli.argument("description", type=str, default=None, help="New description")
-@cli.option("--update")
-@cli.option("-u")
+@cli.alias("--update")
+@cli.alias("-u")
 def update_todo(todo_id: int, title: str | None = None, description: str | None = None) -> str:
     todo = TodoItem.objects.get(id=todo_id)
     if not todo:
@@ -164,7 +164,7 @@ registry = cli.CommandRegistry()
 
 @registry.register(description="Say hello")
 @registry.argument("name", type=str)
-@registry.option("--hello")
+@registry.alias("--hello")
 def hello(name: str) -> str:
     return f"Hello, {name}!"
 
@@ -176,18 +176,41 @@ if __name__ == "__main__":
 For larger plugin-based CLIs, explicit plugin registry composition is supported:
 
 ```python
-from registers.cli import CommandRegistry
+from __future__ import annotations
+
 from cli.commands.billing import cli as billing_cli
-from cli.commands.users import cli as users_cli
 from cli.commands.ops import cli as ops_cli
+from cli.commands.sessions import cli as sessions_cli
+from cli.commands.users import cli as users_cli
+
+from registers.cli import CommandRegistry
+
 
 registry = CommandRegistry()
-registry.register_plugin(billing_cli)
-registry.register_plugin(users_cli)
-registry.register_plugin(ops_cli)
+try:
+    registry.register_plugin(billing_cli)
+    registry.register_plugin(users_cli)
+    registry.register_plugin(ops_cli)
+    registry.register_plugin(sessions_cli)
+except Exception as exc:
+    raise SystemError(f"Failed to load CLI plugins: {exc}")
+
+
+def main(argv: list[str] | None = None, print_result: bool = True):
+    try:
+        return registry.run(
+            argv,
+            print_result=print_result,
+            shell_title="User Account Admin CLI",
+            shell_description="Manage user accounts and auth sessions.",
+            shell_usage=True,
+        )
+    except Exception as exc:
+        raise SystemError(f"CLI execution failed: {exc}") from exc
+
 
 if __name__ == "__main__":
-    registry.run()
+    main()
 ```
 
 This pattern keeps plugin wiring deterministic and fails fast on command/alias collisions.
@@ -372,7 +395,7 @@ curl "http://localhost:8000/orders/desc?limit=20&offset=0"
 Use `registers.cron` decorators to define manual, interval, cron, webhook, and
 file-change jobs. A normal `registers.cli` script can install a `cron` command
 to list, run, status-check, and persist the jobs it defines; `fx-tool` remains
-an optional operator companion for project/workflow orchestration.
+an aliasal operator companion for project/workflow orchestration.
 
 Both cron registration styles are supported:
 

@@ -11,8 +11,6 @@
 
 <div align="center">
 
-# Registers
-
 **Build command systems, Pydantic-backed data services, and scheduled automation workflows with one coherent Python framework.**
 
 [![PyPI version](https://img.shields.io/pypi/v/registers?color=5C6BC0\&labelColor=111827\&style=for-the-badge)](https://pypi.org/project/registers/)

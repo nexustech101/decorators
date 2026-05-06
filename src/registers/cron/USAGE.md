@@ -1,14 +1,58 @@
-# `registers.cron` Usage Manual
+<div align="center">
 
-This is the full operations manual for `registers.cron`.
+# `registers.cron`
 
-If an engineer or downstream agent reads this document, they should be able to:
-- design cron/event automation jobs
-- choose module-level vs class-instance architecture correctly
-- run jobs locally with the runtime daemon
-- integrate with `fx cron` for workspace, deployment artifacts, and workflow execution
-- troubleshoot failures, retries, and dead-letter scenarios
+**Production automation and scheduling runtime for Python-defined jobs, durable event processing, and operational workflow orchestration.**
 
+[![Module](https://img.shields.io/badge/module-registers.cron-5C6BC0?style=for-the-badge)](#) [![Type](https://img.shields.io/badge/type-Automation%20%26%20Scheduling-1F2937?style=for-the-badge)](#) [![Runtime](https://img.shields.io/badge/runtime-Async%20Workers-0F766E?style=for-the-badge)](#) [![Triggers](https://img.shields.io/badge/triggers-Interval%20%7C%20Cron%20%7C%20Event-7C3AED?style=for-the-badge)](#) [![Ops](https://img.shields.io/badge/ops-fx%20Cron%20Control%20Plane-9333EA?style=for-the-badge)](#) [![Maturity](https://img.shields.io/badge/status-Production%20Manual-2563EB?style=for-the-badge)](#)
+
+</div>
+
+## Tags
+
+`Job Registration` `Daemon Runtime` `Retry Policies` `Dead Letters` `Workflow Registration` `Deployment Artifacts` `Observability` `Scheduler Targets`
+
+> **Positioning:** Use `registers.cron` when job logic, runtime state, and operator workflows must live in one coherent automation surface instead of being scattered across ad hoc scripts.
+
+---
+
+`registers.cron` is a Python automation and scheduling runtime for declaring jobs in code, syncing them into durable runtime state, executing queued events, and generating deployment artifacts for supported scheduler targets.
+
+This refactored manual is written for application engineers, platform operators, and downstream AI agents that need to design, run, deploy, and troubleshoot cron/event automation without reading framework internals.
+
+## Audience
+
+Use this manual if you are:
+
+- declaring Python jobs with interval, cron-expression, manual, file-change, or webhook triggers;
+- running a local async job daemon;
+- generating Linux cron, Windows Task Scheduler, or GitHub Actions artifacts;
+- building repeatable workflow automation around `fx cron`;
+- documenting job lifecycle, retry, dead-letter, and observability behavior.
+
+## Operating Model
+
+`registers.cron` has three layers:
+
+| Layer | Responsibility |
+|---|---|
+| Registration | Decorators and trigger builders define job metadata. |
+| Runtime | Project job discovery, durable event state, async workers, run history, and dead-letter handling. |
+| Operations | Workspace creation, workflow registration, artifact generation, scheduler apply operations, and status reporting through `fx cron`. |
+
+## Production Contract
+
+A production job surface should use:
+
+- stable job names;
+- explicit triggers and targets;
+- idempotent handlers;
+- bounded runtime for long-running jobs;
+- explicit retry policy for unstable network or deployment work;
+- environment-backed webhook tokens and secrets;
+- observable workflows through `.fx/fx.db`, `fx cron status`, and run history.
+
+---
 ## 1. What `registers.cron` Is
 
 `registers.cron` is a Python automation/scheduling module with three layers:
@@ -28,7 +72,7 @@ If an engineer or downstream agent reads this document, they should be able to:
 
 `fx` is the operator CLI that drives the same runtime and workspace primitives (`fx cron ...`).
 
-**Summary**: `registers.cron` defines jobs in Python, then executes and operationalizes them through runtime state and optional `fx` workflows.
+> **Key point:** `registers.cron` defines jobs in Python, then executes and operationalizes them through runtime state and optional `fx` workflows.
 
 ## 2. Imports and Public API
 
@@ -40,6 +84,10 @@ import registers.cron as cron
 
 ```python
 from registers.cron import CronRegistry
+```
+
+```python
+from registers import CronRegistry  # Recommended
 ```
 
 Public module exports:
@@ -68,7 +116,7 @@ Public module exports:
   - `list_workflows`
   - `run_registered_workflow`
 
-**Summary**: use module-level API for convenience; use `CronRegistry` for explicit, isolated job surfaces.
+> **Key point:** use module-level API for convenience; use `CronRegistry` for explicit, isolated job surfaces.
 
 ## 3. Architecture Decision: Module-Level vs Class Instance
 
@@ -99,7 +147,7 @@ Benefits:
 - explicit dependency boundaries
 - cleaner composition in larger systems
 
-**Summary**: module-level is the default path; class-instance is the production path for isolation and composition.
+> **Key point:** module-level is the default path; class-instance is the production path for isolation and composition.
 
 ## 4. Trigger API
 
@@ -149,7 +197,7 @@ Validation rules:
 
 File-change triggers are powered by `watchdog`. Native OS observers are used by default, with watchdog polling available internally for environments that need it.
 
-**Summary**: choose `interval` for fixed cadence, `cron` for calendar scheduling, `event` for push/manual/file-driven automation, and `watch` for the common file-change decorator.
+> **Key point:** choose `interval` for fixed cadence, `cron` for calendar scheduling, `event` for push/manual/file-driven automation, and `watch` for the common file-change decorator.
 
 ## 5. Job Decorator API
 
@@ -187,7 +235,7 @@ Handler injection behavior:
 `cron.start(...)` is the friendly foreground daemon wrapper around `run_daemon(...)`.
 `cron.install_cli()` installs a `registers.cli` command so the script that defines jobs can manage them directly.
 
-**Summary**: the job decorator captures runtime metadata, deployment target metadata, and retry policy in one declaration; facade methods run or durably register jobs.
+> **Key point:** the job decorator captures runtime metadata, deployment target metadata, and retry policy in one declaration; facade methods run or durably register jobs.
 
 ## 6. Retry, Backoff, and Dead-Letter Behavior
 
@@ -217,27 +265,27 @@ Terminal states:
 Internal retry metadata:
 - runtime stores retry bookkeeping under `__fx_retry` in event payload records
 
-**Summary**: use exponential retry for network/deploy instability, fixed retry for predictable retries, and inspect dead letters for terminal failures.
+> **Key point:** use exponential retry for network/deploy instability, fixed retry for predictable retries, and inspect dead letters for terminal failures.
 
 ## 7. Module-Level Usage (Default Facade)
 
 ```python
 from __future__ import annotations
 
-import registers.cron as cron
+from registers import CronRegistry
 
+
+cron = CronRegistry()
 
 @cron.job
 def rebuild(payload: dict | None = None) -> str:
     dry_run = bool((payload or {}).get("dry_run", False))
     return f"rebuilt (dry_run={dry_run})"
 
-
 @cron.watch("src/**/*.py", debounce_seconds=1.0)
 def rebuild_on_source_change(event: dict) -> str:
     path = event["payload"]["path"]
     return f"source changed: {path}"
-
 
 @cron.job(
     name="nightly-maintenance",
@@ -248,7 +296,6 @@ def rebuild_on_source_change(event: dict) -> str:
 )
 def nightly_maintenance() -> str:
     return "maintenance complete"
-
 
 @cron.job(
     name="deploy-webhook",
@@ -265,13 +312,12 @@ def deploy_webhook(event: dict) -> str:
     env_name = event.get("payload", {}).get("env", "staging")
     return f"deploy requested for {env_name}"
 
-
 if __name__ == "__main__":
     print(cron.run("rebuild", payload={"dry_run": True}))
     cron.register("nightly-maintenance", root=".", apply=False)
 ```
 
-**Summary**: module-level decorators are ideal for concise single-surface cron automation.
+> **Key point:** module-level decorators are ideal for concise single-surface cron automation.
 
 ### 7.1 Script-Local CLI Management
 
@@ -284,19 +330,15 @@ from __future__ import annotations
 import registers.cli as cli
 import registers.cron as cron
 
-
 @cron.job
 def rebuild(payload: dict | None = None) -> str:
     return f"rebuilt:{bool((payload or {}).get('dry_run'))}"
-
 
 @cron.job(name="nightly", trigger=cron.cron("0 2 * * *"))
 def nightly() -> str:
     return "nightly complete"
 
-
 cron.install_cli()
-
 
 if __name__ == "__main__":
     cli.run(shell_title="Automation")
@@ -315,17 +357,16 @@ python app.py cron status .
 Windows, Linux cron elsewhere. The generated persistent schedule calls back into
 the same script with `cron run <job>`, so it does not depend on `fx`.
 
-**Summary**: use `cron.install_cli()` when you want a self-contained automation script with its own job-management commands.
+> **Key point:** use `cron.install_cli()` when you want a self-contained automation script with its own job-management commands.
 
 ## 8. Class-Instance Usage (Isolated Registries)
 
 ```python
 from __future__ import annotations
 
-from registers.cron import CronRegistry
+from registers import CronRegistry
 
 cron = CronRegistry()
-
 
 @cron.job(
     name="cleanup-cache",
@@ -338,7 +379,6 @@ cron = CronRegistry()
 def cleanup_cache(payload: dict | None = None) -> str:
     return "cache cleaned"
 
-
 # Immediate execution and durable registration mirror the module facade.
 cron.run("cleanup-cache", payload={"dry_run": True})
 cron.register("cleanup-cache", root=".", apply=False)
@@ -350,7 +390,7 @@ cron.register("cleanup-cache", root=".", apply=False)
 - two services in one process can each own separate scheduler surfaces
 - runtime calls can explicitly bind to a registry
 
-**Summary**: class-instance decorators are first-class and preferred when job surfaces must be isolated.
+> **Key point:** class-instance decorators are first-class and preferred when job surfaces must be isolated.
 
 ## 9. Explicit Runtime Wiring (Discovery + Daemon)
 
@@ -360,7 +400,7 @@ You can bind runtime operations to an explicit registry instance.
 from __future__ import annotations
 
 import asyncio
-from registers.cron import CronRegistry
+from registers import CronRegistry
 from registers.cron.runtime import sync_project_jobs, run_daemon
 
 cron = CronRegistry()
@@ -380,31 +420,8 @@ Important notes:
 - if your project uses `src/<package>`, discovery uses that package
 - if no discoverable package exists, no jobs are loaded from discovery
 
-**Summary**: pass `registry=` when you need deterministic runtime behavior tied to a specific `CronRegistry` instance.
+> **Key point:** pass `registry=` when you need deterministic runtime behavior tied to a specific `CronRegistry` instance.
 
-## 10. Recommended Project Layout (Ops-Friendly)
-
-```text
-project/
-  src/
-    app/
-      __init__.py
-      __main__.py
-      ops/
-        __init__.py
-        jobs/
-          __init__.py
-          deploy.py
-          housekeeping.py
-  ops/
-    workflows/
-      cron/
-      windows/
-      ci/
-    scripts/
-  .fx/
-    fx.db
-```
 
 Workspace helper:
 
@@ -424,13 +441,13 @@ print("created", len(result.created), "existing", len(result.existing))
 - `src/app/ops/__init__.py`
 - `src/app/ops/jobs/__init__.py`
 
-**Summary**: keep Python job definitions and generated workflow artifacts separate for clean operations and version control.
+> **Key point:** keep Python job definitions and generated workflow artifacts separate for clean operations and version control.
 
-## 11. `fx` Integration: End-to-End Operator Flow
+## 10. `fx` Integration: End-to-End Operator Flow
 
 `fx` exposes the operational surface for `registers.cron`.
 
-### 11.1 Prepare workspace
+### 10.1 Prepare workspace
 
 ```bash
 fx cron workspace .
@@ -448,7 +465,7 @@ Existing:
   - ...
 ```
 
-### 11.2 Discover/sync jobs
+### 10.2 Discover/sync jobs
 
 ```bash
 fx cron jobs .
@@ -464,7 +481,7 @@ Jobs:
   <job-name> (<trigger>, target=<target>, enabled=<bool>, retry=<...>)
 ```
 
-### 11.3 Start runtime
+### 10.3 Start runtime
 
 Foreground:
 
@@ -478,14 +495,14 @@ Background:
 fx cron start . --workers 4
 ```
 
-### 11.4 Trigger jobs manually
+### 10.4 Trigger jobs manually
 
 ```bash
 fx cron trigger nightly-maintenance .
 fx cron trigger deploy-webhook . --payload '{"env":"prod","sha":"abc123"}'
 ```
 
-### 11.5 Observe runtime
+### 10.5 Observe runtime
 
 ```bash
 fx cron status .
@@ -498,33 +515,33 @@ Includes counters:
 - `Dead-letter events`
 - `Runs`
 
-### 11.6 Generate deployment artifacts
+### 10.6 Generate deployment artifacts
 
 ```bash
 fx cron generate .
 fx cron generate . --target github_actions
 ```
 
-### 11.7 Apply artifacts where supported
+### 10.7 Apply artifacts where supported
 
 ```bash
 fx cron apply . --target linux_cron
 fx cron apply . --target windows_task_scheduler
 ```
 
-### 11.8 Stop runtime
+### 10.8 Stop runtime
 
 ```bash
 fx cron stop .
 ```
 
-**Summary**: `fx cron` is the operator control-plane over `registers.cron` runtime, event queue, and deployment artifacts.
+> **Key point:** `fx cron` is the operator control-plane over `registers.cron` runtime, event queue, and deployment artifacts.
 
-## 12. Workflow File Registration and Execution
+## 11. Workflow File Registration and Execution
 
 Use this when deployment/workflow files are managed explicitly and should be invoked in a consistent way.
 
-### 12.1 Register a workflow linked to a cron job
+### 11.1 Register a workflow linked to a cron job
 
 ```bash
 fx cron register deploy-workflow . \
@@ -533,7 +550,7 @@ fx cron register deploy-workflow . \
   --target github_actions
 ```
 
-### 12.2 Register a workflow that executes a shell command directly
+### 11.2 Register a workflow that executes a shell command directly
 
 ```bash
 fx cron register db-backup . \
@@ -542,13 +559,13 @@ fx cron register db-backup . \
   --target linux_cron
 ```
 
-### 12.3 List registered workflows
+### 11.3 List registered workflows
 
 ```bash
 fx cron workflows .
 ```
 
-### 12.4 Execute registered workflow
+### 11.4 Execute registered workflow
 
 ```bash
 fx cron run-workflow deploy-workflow . --payload '{"env":"prod"}'
@@ -565,9 +582,9 @@ Constraints:
   - `--job`, or
   - `--command`
 
-**Summary**: registered workflows provide a stable, named execution surface for jobs and scripted operations.
+> **Key point:** registered workflows provide a stable, named execution surface for jobs and scripted operations.
 
-## 13. Deployment Targets and Adapter Behavior
+## 12. Deployment Targets and Adapter Behavior
 
 Targets:
 - `local_async`
@@ -589,9 +606,9 @@ Apply behavior (`fx cron apply` / adapters):
 Default artifact paths:
 - if `deployment_file` is not set, artifacts are placed under `.fx/cron/deployments`
 
-**Summary**: generate artifacts for all targets, apply only where host/runtime integration exists.
+> **Key point:** generate artifacts for all targets, apply only where host/runtime integration exists.
 
-## 14. Runtime State and Observability
+## 13. Runtime State and Observability
 
 Control-plane database:
 
@@ -618,11 +635,11 @@ Operational practices:
 - inspect run history for repeated failures
 - keep workflow files in `ops/workflows` for auditability
 
-**Summary**: cron operations are persisted and observable through `.fx/fx.db` plus `fx` reporting commands.
+> **Key point:** cron operations are persisted and observable through `.fx/fx.db` plus `fx` reporting commands.
 
-## 15. Simple vs Medium Project Patterns
+## 14. Simple vs Medium Project Patterns
 
-### 15.1 Simple script pattern
+### 14.1 Simple script pattern
 
 Use when:
 - one or two jobs
@@ -634,7 +651,7 @@ Pattern:
 - `local_async` target
 - manual/interval triggers
 
-### 15.2 Medium automation project pattern
+### 14.2 Medium automation project pattern
 
 Use when:
 - multiple jobs across domains (build/deploy/cleanup)
@@ -647,15 +664,17 @@ Pattern:
 - `fx cron workspace/jobs/start/status/generate/apply` lifecycle
 - class-instance registries when multiple scopes exist in one process
 
-**Summary**: start small with module-level jobs; move to structured ops layout + explicit registries as scope grows.
+> **Key point:** start small with module-level jobs; move to structured ops layout + explicit registries as scope grows.
 
-## 16. Professional Deployment Example (GitHub Actions + Manual Trigger)
+## 15. Professional Deployment Example (GitHub Actions + Manual Trigger)
 
 ```python
 from __future__ import annotations
 
-import registers.cron as cron
+from registers import CronRegistry
 
+
+cron = CronRegistry()
 
 @cron.job(
     name="deploy-production",
@@ -691,42 +710,42 @@ Expected result shape:
 - manual trigger creates pending event
 - daemon processes event and records run outcome
 
-**Summary**: this is the standard deployment automation path when Python-defined jobs orchestrate CI workflow artifacts.
+> **Key point:** this is the standard deployment automation path when Python-defined jobs orchestrate CI workflow artifacts.
 
-## 17. Error Paths and Troubleshooting
+## 16. Error Paths and Troubleshooting
 
-### 17.1 Common registration errors
+### 16.1 Common registration errors
 
 - duplicate job name:
   - `ValueError: Cron job '<name>' is already registered.`
 - invalid trigger object:
   - `TypeError` if `trigger` is not from `interval/cron/event`
 - unsupported target:
-  - `target must be one of ...`
+  - `target must be one of `local_async`, `linux_cron`, `windows_task_scheduler`, or `github_actions`...`
 - invalid retry values:
   - negative attempts/backoff/jitter, or invalid cap relationship
 
-### 17.2 Common workflow errors
+### 16.2 Common workflow errors
 
 - missing workflow file at registration time -> `FileNotFoundError`
 - both `--job` and `--command` provided -> `ValueError`
 - neither `--job` nor `--command` provided -> `ValueError`
 
-### 17.3 Runtime/discovery pitfalls
+### 16.3 Runtime/discovery pitfalls
 
 - no discoverable package under `src` -> no jobs loaded by discovery
 - if project layout differs from `src/<package>`, ensure your import path and package structure are explicit
 - if jobs are not found, run `fx cron jobs .` and confirm package/module loading counts
 
-### 17.4 Deployment apply pitfalls
+### 16.4 Deployment apply pitfalls
 
 - `linux_cron` apply on Windows host -> unsupported
 - `windows_task_scheduler` apply on non-Windows host -> unsupported
 - CI targets are generate-only in v1
 
-**Summary**: most issues come from package discovery, workflow registration mode, or host/target mismatch during apply.
+> **Key point:** most issues come from package discovery, workflow registration mode, or host/target mismatch during apply.
 
-## 18. Security and Reliability Guidance
+## 17. Security and Reliability Guidance
 
 - keep webhook tokens out of source code (env/config only)
 - keep job handlers idempotent so retries are safe
@@ -734,9 +753,9 @@ Expected result shape:
 - set `max_runtime` for long-running jobs to avoid worker starvation
 - use stable job names for auditability and long-term ops continuity
 
-**Summary**: secure tokens, idempotent handlers, bounded runtime, and explicit retry policy are the baseline for production automation.
+> **Key point:** secure tokens, idempotent handlers, bounded runtime, and explicit retry policy are the baseline for production automation.
 
-## 19. Agent Build Recipe (Downstream Automation Agent)
+## 18. Agent Build Recipe (Downstream Automation Agent)
 
 When asked to create cron automation with this module:
 
@@ -779,9 +798,9 @@ fx cron apply <root> --target <target>
 fx cron register <workflow_name> <root> --workflow-file <path> --job <job_name>
 ```
 
-**Summary**: always move in this order: architecture -> job definition -> workspace -> discovery -> runtime test -> deployment artifacts -> workflow registration.
+> **Key point:** always move in this order: architecture -> job definition -> workspace -> discovery -> runtime test -> deployment artifacts -> workflow registration.
 
-## 20. Quick Command Cheat Sheet
+## 19. Quick Command Cheat Sheet
 
 ```bash
 # workspace
@@ -808,4 +827,25 @@ fx cron workflows .
 fx cron run-workflow <name> . --payload '{"k":"v"}'
 ```
 
-**Summary**: these are the core commands you will use most in day-to-day cron automation operations.
+> **Key point:** these are the core commands you will use most in day-to-day cron automation operations.
+
+---
+
+## Production Readiness Checklist
+
+Before deploying `registers.cron` jobs, verify the following:
+
+- [ ] Every job has a stable explicit name.
+- [ ] Every job declares an intentional trigger.
+- [ ] Deployment targets are chosen deliberately, not left implicit for production jobs.
+- [ ] Webhook tokens are loaded from environment or secret storage, never hard-coded.
+- [ ] Handlers are idempotent or explicitly protected against duplicate execution.
+- [ ] Long-running jobs set `max_runtime` when worker starvation is possible.
+- [ ] Network, deployment, and external-service jobs use fixed or exponential retry policy.
+- [ ] Dead-letter events are monitored through `fx cron status` and run history.
+- [ ] Generated artifacts are checked into the expected `ops/workflows/*` path when appropriate.
+- [ ] Host-specific apply behavior is tested on the target platform.
+
+## Recommended Positioning
+
+Use `registers.cron` when Python-defined automation should be treated as operational infrastructure: discoverable, triggerable, observable, and deployable. For simple in-process intervals, module-level jobs are enough. For multi-service automation, long-lived operator workflows, or CI/deployment orchestration, prefer explicit project layout, `fx cron`, stable workflow registration, and runtime observability.

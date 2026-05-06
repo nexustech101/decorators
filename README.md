@@ -1,92 +1,152 @@
-```
- ██████╗ ███████╗ ██████╗ ██╗███████╗████████╗███████╗██████╗ ███████╗   
- ██╔══██╗██╔════╝██╔════╝ ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗██╔════╝ 
- ██████╔╝█████╗  ██║  ███╗██║███████╗   ██║   █████╗  ██████╔╝███████╗ 
- ██╔══██╗██╔══╝  ██║   ██║██║╚════██║   ██║   ██╔══╝  ██╔══██╗╚════██║ 
- ██║  ██║███████╗╚██████╔╝██║███████║   ██║   ███████╗██║  ██║███████║ 
- ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝   
+```text
+██████╗ ███████╗ ██████╗ ██╗███████╗████████╗███████╗██████╗ ███████╗
+██╔══██╗██╔════╝██╔════╝ ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗██╔════╝
+██████╔╝█████╗  ██║  ███╗██║███████╗   ██║   █████╗  ██████╔╝███████╗
+██╔══██╗██╔══╝  ██║   ██║██║╚════██║   ██║   ██╔══╝  ██╔══██╗╚════██║
+██║  ██║███████╗╚██████╔╝██║███████║   ██║   ███████╗██║  ██║███████║
+╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝
+
+     Decorator-first Python infrastructure for CLIs, persistence, and automation.
 ```
 
 <div align="center">
 
-**Declarative Pydantic persistence. Manager-first. Production-ready.**
+# Registers
 
-[![PyPI version](https://img.shields.io/pypi/v/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
-[![Python](https://img.shields.io/pypi/pyversions/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-5C6BC0?labelColor=1a1a2e&style=for-the-badge)](LICENSE)
-[![Downloads](https://img.shields.io/pypi/dm/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
-[![SQLAlchemy](https://img.shields.io/badge/Powered%20by-SQLAlchemy-5C6BC0?labelColor=1a1a2e&style=for-the-badge)](https://www.sqlalchemy.org/)
-[![TESTS](https://img.shields.io/badge/UNIT%20TESTS-250+-5C6BC0?labelColor=1a1a2e&style=for-the-badge)](https://www.sqlalchemy.org/)
+**Build command systems, Pydantic-backed data services, and scheduled automation workflows with one coherent Python framework.**
+
+[![PyPI version](https://img.shields.io/pypi/v/registers?color=5C6BC0\&labelColor=111827\&style=for-the-badge)](https://pypi.org/project/registers/)
+[![Python](https://img.shields.io/pypi/pyversions/registers?color=0F766E\&labelColor=111827\&style=for-the-badge)](https://pypi.org/project/registers/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-7C3AED?labelColor=111827\&style=for-the-badge)](LICENSE)
+[![SQLAlchemy](https://img.shields.io/badge/Powered%20by-SQLAlchemy-D97706?labelColor=111827\&style=for-the-badge)](https://www.sqlalchemy.org/)
+[![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?labelColor=111827\&style=for-the-badge)](https://docs.pydantic.dev/)
+[![Tests](https://img.shields.io/badge/Tests-250%2B-2563EB?labelColor=111827\&style=for-the-badge)](#testing)
+
+`registers.cli` · `registers.db` · `registers.cron` · `fx-tool`
 
 </div>
 
 ---
 
-Registers is a DX-first Python framework for building:
+## Tags
 
-- CLI tooling systems
-- Data and API services
-- Scheduled/event automation workflows
+`Python Framework` `Developer Experience` `CLI Tooling` `Pydantic Persistence` `SQLAlchemy` `FastAPI` `Cron Automation` `Plugin Architecture` `Internal Tools` `Ops Workflows` `AI-Agent Friendly`
 
-It uses decorators for commands, database models, and job definitions, and pairs with `fx-tool`, the project manager for scaffolding, running, validating, and operating Registers projects.
+---
 
-This framework is for teams and developers who want one coherent toolkit for backend development and DevOps workflows instead of stitching together many unrelated layers. Build, manage, and deploy at the speed of thought.
+## What Is Registers?
 
-## Why Registers
+**Registers** is a DX-first Python framework for building production-minded backend and operations tooling with a consistent decorator-driven programming model.
 
-- Fast setup: generate ready-to-run CLI or DB/API projects with `fx init`.
-- Unified patterns: decorators for commands (`cli`), models (`db`), and jobs (`cron`).
-- Operational workflow support via `fx-tool`: run, install, update, pull plugins, and manage cron runtime.
-- Plugin architecture: organize command suites into modules and load them cleanly.
-- Production-minded behavior: structured state, health checks, operation history, and test coverage.
-- Projects that use `registers.cli` module come with a built-in interactive shell.
+It gives you three integrated surfaces:
 
-## Install
+| Module           | Purpose                                                                 | Primary abstraction                  |
+| ---------------- | ----------------------------------------------------------------------- | ------------------------------------ |
+| `registers.cli`  | Command-line tools, interactive shells, plugin-driven operator consoles | `CommandRegistry`                    |
+| `registers.db`   | Pydantic-first persistence backed by SQLAlchemy engines                 | `DatabaseRegistry` + `Model.objects` |
+| `registers.cron` | Scheduled jobs, event jobs, retryable automation, workflow operations   | `CronRegistry`                       |
+
+The companion package, **`fx-tool`**, provides project scaffolding, project operations, workflow management, and cron/runtime commands for Registers-based projects.
+
+> **Positioning:** Registers is not a thin helper library. It is a coherent application infrastructure layer for engineers who want the ergonomics of decorators with the discipline of explicit registries, manager APIs, plugin composition, runtime state, and production-facing operational workflows.
+
+---
+
+## Why Registers?
+
+Most Python service projects eventually accumulate the same supporting layers:
+
+* a CLI for internal operations;
+* a persistence layer for application data;
+* scheduled jobs for maintenance and workflows;
+* scripts for deployment, validation, and project management;
+* documentation that explains how humans and coding agents should operate the project.
+
+Registers provides these primitives through one consistent mental model:
+
+```python
+@cli.register(...)
+def command(...): ...
+
+@db.database_registry(...)
+class Model(BaseModel): ...
+
+@cron.job(...)
+def job(...): ...
+```
+
+That consistency makes small projects faster to start and medium projects easier to scale.
+
+---
+
+## Core Features
+
+| Capability                       | Description                                                                                                                  |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Decorator-first APIs**         | Register commands, models, and jobs through explicit decorators.                                                             |
+| **Registry isolation**           | Use module-level facades for small projects or owned registry instances for tests, plugins, tenants, and multi-surface apps. |
+| **Pydantic-first persistence**   | Persist Pydantic models without full ORM boilerplate while retaining SQLAlchemy-powered storage.                             |
+| **Manager-style CRUD**           | Use `Model.objects.create`, `require`, `filter`, `upsert`, `bulk_create`, `bulk_upsert`, and schema helpers.                 |
+| **CLI command runtime**          | Build scriptable CLIs, interactive shells, aliases, help output, plugins, DI, middleware, and dispatch workflows.            |
+| **Cron/event automation**        | Define manual, interval, cron-expression, webhook, and file-change jobs with retries and runtime state.                      |
+| **Production error semantics**   | Structured exceptions, deterministic parse failures, duplicate/collision detection, and dead-letter states.                  |
+| **FastAPI-ready patterns**       | Use lifespan hooks, exception handlers, service-layer invariants, and manager-based persistence.                             |
+| **Agent-friendly documentation** | Designed to be readable by engineers and AI coding agents building from implementation instructions.                         |
+
+---
+
+## Installation
+
+Install Registers:
 
 ```bash
 pip install registers
 ```
 
-Install the project manager (`fx-tool`) as a companion:
+Install the companion project manager:
 
 ```bash
 pip install fx-tool
-# or from source
+```
+
+Or install `fx-tool` from source:
+
+```bash
 pip install git+https://github.com/nexustech101/fx.git
 ```
 
-You can also clone directly from the repo `nexustech101/fx`:
+Clone the companion repository directly:
 
 ```bash
 git clone https://github.com/nexustech101/fx.git
 ```
 
-## Quick Start Guide
+---
 
-1. Build one CLI command with a decorator.
-2. Build one DB model with a decorator.
-3. Use `Model.objects` for CRUD.
+## Quick Start: CLI + Database Todo App
 
-### CLI in minutes
+The example below creates a small todo application with:
+
+* an isolated command registry;
+* an isolated database registry;
+* a Pydantic model persisted to SQLite;
+* commands for create/list/update/complete;
+* an optional interactive shell.
 
 ```python
 from __future__ import annotations
 
 from enum import StrEnum
 from time import strftime
+
 from pydantic import BaseModel
 
-from registers import (
-    CommandRegistry,
-    DatabaseRegistry,
-    db_field
-)
+from registers import CommandRegistry, DatabaseRegistry, db_field
 
 cli = CommandRegistry()
 db = DatabaseRegistry()
 
-DB_PATH = "todos.db"
-TABLE = "todos"
+DB_PATH = "sqlite:///todos.db"
 NOW = lambda: strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -95,7 +155,7 @@ class TodoStatus(StrEnum):
     COMPLETED = "completed"
 
 
-@db.database_registry(DB_PATH, table_name=TABLE, key_field="id")
+@db.database_registry(DB_PATH, table_name="todos", key_field="id")
 class TodoItem(BaseModel):
     id: int | None = None
     title: str = db_field(index=True)
@@ -108,33 +168,29 @@ class TodoItem(BaseModel):
 @cli.register(name="add", description="Create a todo item")
 @cli.argument("title", type=str, help="Todo title")
 @cli.argument("description", type=str, default="", help="Todo description")
-@cli.alias("--add")
-@cli.alias("-a")
+@cli.option("--add")
+@cli.option("-a")
 def add_todo(title: str, description: str = "") -> str:
-    todo = TodoItem(title=title, description=description)
-    todo.save()
+    todo = TodoItem.objects.create(title=title, description=description)
     return f"Added: {todo.title} (ID: {todo.id})"
 
 
 @cli.register(name="list", description="List todo items")
-@cli.alias("--list")
-@cli.alias("-l")
+@cli.option("--list")
+@cli.option("-l")
 def list_todos() -> str:
-    todos = TodoItem.objects.all()
+    todos = TodoItem.objects.all(order_by="id")
     if not todos:
         return "No todo items found."
-    return "\n".join(f"{t.id}: {t.title} [{t.status}]" for t in todos)
+    return "\n".join(f"{todo.id}: {todo.title} [{todo.status}]" for todo in todos)
 
 
 @cli.register(name="complete", description="Mark a todo item as completed")
 @cli.argument("todo_id", type=int, help="Todo ID")
-@cli.alias("--complete")
-@cli.alias("-c")
+@cli.option("--complete")
+@cli.option("-c")
 def complete_todo(todo_id: int) -> str:
-    todo = TodoItem.objects.get(id=todo_id)
-    if not todo:
-        return f"Todo item with ID {todo_id} not found."
-
+    todo = TodoItem.objects.require(todo_id)
     todo.status = TodoStatus.COMPLETED.value
     todo.updated_at = NOW()
     todo.save()
@@ -145,15 +201,18 @@ def complete_todo(todo_id: int) -> str:
 @cli.argument("todo_id", type=int, help="Todo ID")
 @cli.argument("title", type=str, default=None, help="New title")
 @cli.argument("description", type=str, default=None, help="New description")
-@cli.alias("--update")
-@cli.alias("-u")
-def update_todo(todo_id: int, title: str | None = None, description: str | None = None) -> str:
-    todo = TodoItem.objects.get(id=todo_id)
-    if not todo:
-        return f"Todo item with ID {todo_id} not found."
-
-    todo.title = title or ""
-    todo.description = description or ""
+@cli.option("--update")
+@cli.option("-u")
+def update_todo(
+    todo_id: int,
+    title: str | None = None,
+    description: str | None = None,
+) -> str:
+    todo = TodoItem.objects.require(todo_id)
+    if title is not None:
+        todo.title = title
+    if description is not None:
+        todo.description = description
     todo.updated_at = NOW()
     todo.save()
     return f"Updated todo ID {todo_id}."
@@ -163,109 +222,56 @@ if __name__ == "__main__":
     cli.run(
         shell_title="Todo Console",
         shell_description="Manage tasks.",
-        shell_colors=None,
         shell_banner=True,
-        shell_usage=True,  # Prints usage menu on startup
+        shell_usage=True,
     )
 ```
 
-Run it as follows:
+Run commands directly:
 
 ```bash
-# Add
 python todo.py add "Buy groceries" "Milk, eggs, bread"
 python todo.py --add "Buy groceries" "Milk, eggs, bread"
 python todo.py -a "Buy groceries" "Milk, eggs, bread"
 python todo.py add --title "Buy groceries" --description "Milk, eggs, bread"
 
-# List
 python todo.py list
 python todo.py --list
 python todo.py -l
 
-# Complete
 python todo.py complete 1
 python todo.py --complete 1
 python todo.py -c 1
 
-# Update
 python todo.py update 1 "Read two books" "Finish both novels this week"
 python todo.py update 1 --title "Read two books" --description "Finish both novels this week"
-python todo.py --update 1 --title "Read two books"
 ```
 
-Or:
+Run without arguments to enter the interactive shell:
 
 ```bash
-# Run directly for interactive mode
 python todo.py
 ```
-Interactive mode:
 
-![Screenshot](img1.png)
+---
 
-`fx-tool` is the recommended way to manage Registers projects end-to-end.
-Think of it as the project operations companion for Registers, similar to how
-`pip` supports Python package workflows or how `npm` supports Node package workflows.
-For full `fx` usage, see the `fx-tool` docs in the separate repo.
+## Quick Start: Database + FastAPI Service
 
-
-For larger plugin-based CLIs, explicit plugin registry composition is supported:
+Registers works naturally with FastAPI because application models remain Pydantic models while persistence is handled by the registered manager API.
 
 ```python
 from __future__ import annotations
 
-from cli.commands.billing import cli as billing_cli
-from cli.commands.ops import cli as ops_cli
-from cli.commands.sessions import cli as sessions_cli
-from cli.commands.users import cli as users_cli
-
-from registers import CommandRegistry
-
-
-registry = CommandRegistry()
-try:
-    registry.register_plugin(billing_cli)
-    registry.register_plugin(users_cli)
-    registry.register_plugin(ops_cli)
-    registry.register_plugin(sessions_cli)
-except Exception as exc:
-    raise SystemError(f"Failed to load CLI plugins: {exc}")
-
-
-def main() -> None:
-    try:
-        return registry.run(
-            print_result=True,
-            shell_title="User Account Admin CLI",
-            shell_description="Manage user accounts and auth sessions.",
-            shell_usage=True,
-        )
-    except Exception as exc:
-        raise SystemError(f"CLI execution failed: {exc}") from exc
-
-
-if __name__ == "__main__":
-    main()
-```
-
-### Database + FastAPI in 5 minutes
-
-```python
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+
+from fastapi import FastAPI
 from pydantic import BaseModel
-from registers import (
-    DatabaseRegistry,
-    db_field,
-    RecordNotFoundError,
-    UniqueConstraintError,
-)
+
+from registers import DatabaseRegistry, RecordNotFoundError, UniqueConstraintError
 
 DB_URL = "sqlite:///shop.db"
 db = DatabaseRegistry()
 
-# ---- Models ----
 
 @db.database_registry(DB_URL, table_name="customers", unique_fields=["email"])
 class Customer(BaseModel):
@@ -273,11 +279,13 @@ class Customer(BaseModel):
     name: str
     email: str
 
+
 @db.database_registry(DB_URL, table_name="products")
 class Product(BaseModel):
     id: int | None = None
     name: str
     price: float
+
 
 @db.database_registry(DB_URL, table_name="orders")
 class Order(BaseModel):
@@ -287,100 +295,96 @@ class Order(BaseModel):
     quantity: int
     total: float
 
-# ---- App ----
+
+MODELS = (Customer, Product, Order)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    for model in (Customer, Product, Order):
-        model.create_schema()
+    for model in MODELS:
+        if not model.schema_exists():
+            model.create_schema()
     yield
-    for model in (Customer, Product, Order):
+    for model in MODELS:
         model.objects.dispose()
+
 
 app = FastAPI(lifespan=lifespan)
 
-# ---- Routes ----
 
 @app.post("/customers", response_model=Customer, status_code=201)
-def create_customer(name: str, email: str):
-    return Customer.objects.create(name=name, email=email)
+def create_customer(customer: Customer):
+    return Customer.objects.create(**customer.model_dump(exclude={"id"}))
+
 
 @app.get("/customers/{customer_id}", response_model=Customer)
 def get_customer(customer_id: int):
     return Customer.objects.require(customer_id)
 
+
 @app.post("/products", response_model=Product, status_code=201)
-def create_product(name: str, price: float):
-    return Product.objects.create(name=name, price=price)
+def create_product(product: Product):
+    return Product.objects.create(**product.model_dump(exclude={"id"}))
+
 
 @app.post("/orders", response_model=Order, status_code=201)
 def create_order(customer_id: int, product_id: int, quantity: int):
+    Customer.objects.require(customer_id)
     product = Product.objects.require(product_id)
     return Order.objects.create(
         customer_id=customer_id,
         product_id=product_id,
         quantity=quantity,
-        total=product.price * quantity,
+        total=round(product.price * quantity, 2),
     )
 
-@app.get("/orders/desc", response_model=list[Order])
-def list_orders_desc(limit: int = 20, offset: int = 0):  # Filter by oldest   (1, 2, 3,..., n)
-    return Order.objects.filter(order_by="id", limit=limit, offset=offset)
 
-@app.get("/orders/asc", response_model=list[Order])
-def list_orders_asc(limit: int = 20, offset: int = 0):  # Filter by newest  (n,..., 3, 2, 1)
+@app.get("/orders", response_model=list[Order])
+def list_orders(limit: int = 20, offset: int = 0):
     return Order.objects.filter(order_by="-id", limit=limit, offset=offset)
 ```
 
+Example requests:
+
 ```bash
-# POST /customers
 curl -X POST "http://localhost:8000/customers" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Alice Johnson", "email": "alice@example.com"}'
+  -d '{"name":"Alice Johnson","email":"alice@example.com"}'
 
-# GET /customers/1
 curl "http://localhost:8000/customers/1"
 
-# POST /products
 curl -X POST "http://localhost:8000/products" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Wireless Keyboard", "price": 49.99}'
+  -d '{"name":"Wireless Keyboard","price":49.99}'
 
-# POST /orders
-curl -X POST "http://localhost:8000/orders" \
-  -H "Content-Type: application/json" \
-  -d '{"customer_id": 1, "product_id": 1, "quantity": 2}'
+curl -X POST "http://localhost:8000/orders?customer_id=1&product_id=1&quantity=2"
 
-# GET /orders/asc  (oldest first)
-curl "http://localhost:8000/orders/asc?limit=20&offset=0"
-
-# GET /orders/desc  (newest first)
-curl "http://localhost:8000/orders/desc?limit=20&offset=0"
+curl "http://localhost:8000/orders?limit=20&offset=0"
 ```
 
-## Cron + Workflow Operations
+---
 
-Use `registers.cron` decorators to define manual, interval, cron, webhook, and
-file-change jobs. A normal `registers.cli` script can install a `cron` command
-to list, run, status-check, and persist the jobs it defines; `fx-tool` remains
-an aliasal operator companion for project/workflow orchestration.
+## Quick Start: Cron + Workflow Operations
 
-Both cron registration styles are supported:
+Use `registers.cron` to define manual, interval, cron-expression, webhook, and file-change jobs.
 
 ```python
-# Module-level style
+from __future__ import annotations
+
 from registers import CronRegistry
 
 cron = CronRegistry()
 
+
 @cron.job
 def rebuild(payload: dict | None = None) -> str:
-    return f"rebuilt:{bool((payload or {}).get('dry_run'))}"
+    dry_run = bool((payload or {}).get("dry_run", False))
+    return f"rebuilt: dry_run={dry_run}"
 
 
 @cron.watch("src/**/*.py", debounce_seconds=1.0)
 def rebuild_on_source_change(event: dict) -> str:
-    return f"changed:{event['payload']['path']}"
+    return f"changed: {event['payload']['path']}"
 
 
 @cron.job(
@@ -394,20 +398,19 @@ def rebuild_on_source_change(event: dict) -> str:
     retry_jitter_seconds=2,
 )
 def nightly() -> str:
-    return "ok"
+    return "nightly complete"
 
 
 print(cron.run("rebuild", payload={"dry_run": True}))
 cron.register("nightly", root=".", apply=False)
 ```
 
-Self-contained CLI management:
+Self-contained CLI management is also supported:
 
 ```python
-from registers import (
-    CommandRegistry,
-    CronRegustry
-)
+from __future__ import annotations
+
+from registers import CommandRegistry, CronRegistry
 
 cli = CommandRegistry()
 cron = CronRegistry()
@@ -422,7 +425,7 @@ cron.install_cli()
 
 
 if __name__ == "__main__":
-    cli.run()
+    cli.run(shell_title="Automation Console", shell_usage=True)
 ```
 
 ```bash
@@ -431,73 +434,127 @@ python app.py cron run nightly .
 python app.py cron register nightly . --target auto --apply
 ```
 
-`--target auto` installs the appropriate platform scheduler target and the
-persistent command calls back into the same script with `cron run`.
+`--target auto` maps to the host platform scheduler and installs a persistent command that calls back into the same script.
 
-Retry-capable jobs are moved to `dead_letter` state when max attempts are exhausted.
-File-change jobs use the `watchdog` Python library under the daemon runtime.
+---
 
 ## Architecture
 
-- `registers.cli`
-  Decorator-driven command registration (module facade + explicit registry instances), parser/dispatch, interactive shell, and plugin loading.
+Registers is built around explicit registries and predictable runtime boundaries.
 
-- `registers.db`
-  Decorator-driven persistence for Pydantic models with SQLAlchemy-backed storage and model manager patterns.
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                           Registers Framework                        │
+├──────────────────────┬──────────────────────┬───────────────────────┤
+│ registers.cli         │ registers.db          │ registers.cron          │
+│ Command runtime       │ Persistence layer     │ Automation runtime      │
+├──────────────────────┼──────────────────────┼───────────────────────┤
+│ CommandRegistry       │ DatabaseRegistry      │ CronRegistry            │
+│ decorators            │ model decorators      │ job decorators          │
+│ parser/dispatch       │ Model.objects         │ triggers/events         │
+│ plugins/shell         │ query/schema helpers  │ daemon/workflows        │
+└──────────────────────┴──────────────────────┴───────────────────────┘
+                                │
+                                ▼
+                          fx-tool companion
+                  scaffolding · runtime ops · workflows
+```
 
-- `registers.cron`
-  Decorator-driven interval/cron/event jobs with async runtime and deployment artifact generation.
+### Module-level vs instance-level APIs
 
-- `fx-tool` (separate package)
-  Project manager and operations CLI for Registers workflows (scaffolding, runtime ops, cron lifecycle, and workflow orchestration).
+| Pattern             | Use when                                            | Example                       |
+| ------------------- | --------------------------------------------------- | ----------------------------- |
+| Module-level facade | Single app surface, simple scripts, fast onboarding | `import registers.cli as cli` |
+| Instance registry   | Tests, plugins, isolated scopes, explicit ownership | `cli = CommandRegistry()`     |
+
+The instance-registry pattern is the preferred production style for larger applications because it avoids global singleton coupling and makes tests/plugin boundaries explicit.
+
+---
+
+## Production Readiness
+
+Registers is designed around production concerns that show up early in real projects:
+
+* deterministic command and alias registration;
+* collision-safe plugin composition;
+* explicit parse and error semantics;
+* schema lifecycle helpers;
+* structured exceptions with context payloads;
+* service-layer patterns for multi-record writes;
+* retry and dead-letter behavior for automation;
+* runtime history and status reporting;
+* explicit resource disposal for shutdown and tests;
+* documentation patterns that can be followed by engineers or AI coding agents.
+
+---
 
 ## Who This Is For
 
-- Backend engineers building internal tools and service utilities.
-- Platform and DevOps engineers standardizing automation workflows.
-- Teams building plugin-based command ecosystems for shared operations.
-- AI tooling teams that need a clear path from local workflows to managed automation.
-- Any engineer who needs a fast and robust solution to data intensive applications.
+Registers is built for:
+
+* backend engineers building internal services and application utilities;
+* platform and DevOps engineers standardizing automation workflows;
+* teams building plugin-based command ecosystems;
+* FastAPI developers who prefer Pydantic-first data modeling;
+* AI tooling teams that need clear, structured, agent-readable implementation surfaces;
+* solo engineers who want fast project setup without sacrificing architectural discipline.
+
+---
 
 ## Documentation
 
-- Project architecture spec: `PROJECT_SPEC.md`
-- CLI manual: `src/registers/cli/USAGE.md`
-- DB manual: `src/registers/db/USAGE.md`
-- FX tool docs (separate package): `https://github.com/nexustech101/fx-tool`
-- Cron manual: `src/registers/cron/USAGE.md` (if present in your version)
+| Document                  | Path                                      |
+| ------------------------- | ----------------------------------------- |
+| Project architecture spec | `PROJECT_SPEC.md`                         |
+| CLI usage manual          | `src/registers/cli/USAGE.md`              |
+| DB usage manual           | `src/registers/db/USAGE.md`               |
+| Cron usage manual         | `src/registers/cron/USAGE.md`             |
+| FX tool repository        | `https://github.com/nexustech101/fx-tool` |
 
-## Roadmap and Planned Extensions
+---
 
-Registers is production-ready today and actively expanding into agentic tooling workflows. Planned additions include:
+## Roadmap
 
-- MCP support:
-  A decorator-based framework for defining and operating MCP servers.
+Registers is production-ready today and designed to expand into higher-level automation and agentic tooling workflows.
 
-- Worktree data capabilities:
-  Structured storage/retrieval of project workspace state for tooling and automation contexts.
+Planned extensions include:
 
-- Data-structure library for AI tooling:
-  Graph and tree primitives (including knowledge graph patterns) for efficient lookup, relationship modeling, hierarchy traversal, and large-project representation.
+* **MCP support** — decorator-based primitives for defining and operating MCP servers;
+* **workspace state capabilities** — structured storage and retrieval of project/worktree state;
+* **AI tooling data structures** — graph and tree primitives for context modeling, traversal, and project representation;
+* **LLM tooling decorators** — decorator-driven tool definitions and memory/knowledge wiring for agent workflows.
 
-- LLM tooling decorators:
-  Decorator-driven tool definitions and memory/knowledge wiring for agent workflows.
+These additions are intended to extend the current `fx-tool + cli + db + cron` architecture rather than replace it.
 
-These additions are designed to work with the current `fx-tool + cli + db + cron` architecture rather than replace it.
+---
 
 ## Requirements
 
-- Python 3.10+
-- `pydantic>=2.0`
-- `sqlalchemy>=2.0`
+* Python 3.10+
+* Pydantic 2.x
+* SQLAlchemy 2.x
+
+Optional integrations depend on the modules you use:
+
+* FastAPI for API service examples;
+* Watchdog for file-change job triggers;
+* Docker or compatible services for multi-dialect database integration tests.
+
+---
 
 ## Testing
 
-- The default `pytest` suite includes SQLite coverage along with PostgreSQL/MySQL integration tests for rename-state behavior.
-- Run Docker Desktop, or another compatible Docker engine, before executing the backend integration suite so the services in `docker-compose.test-db.yml` can boot successfully.
-- The package is backed by a rigorous, production-focused test suite (200+ tests) covering unit behavior, edge cases, and multi-dialect integration scenarios.
+The package is backed by a production-focused test suite covering unit behavior, edge cases, SQLite behavior, and multi-dialect integration scenarios.
 
+```bash
+pytest
+```
+
+For backend integration tests, start Docker Desktop or another compatible Docker engine before running tests that depend on services from `docker-compose.test-db.yml`.
+
+---
 
 ## License
 
 MIT
+

@@ -1,26 +1,59 @@
-```
- ██████╗ ███████╗ ██████╗ ██╗███████╗████████╗███████╗██████╗ ███████╗   ██████╗ ██████╗
- ██╔══██╗██╔════╝██╔════╝ ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗██╔════╝   ██╔══██╗██╔══██╗
- ██████╔╝█████╗  ██║  ███╗██║███████╗   ██║   █████╗  ██████╔╝███████╗   ██║  ██║██████╔╝
- ██╔══██╗██╔══╝  ██║   ██║██║╚════██║   ██║   ██╔══╝  ██╔══██╗╚════██║   ██║  ██║██╔══██╗
- ██║  ██║███████╗╚██████╔╝██║███████║   ██║   ███████╗██║  ██║███████║   ██████╔╝██████╔╝
- ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝   ╚═════╝ ╚═════╝
-```
-
 <div align="center">
 
-**Declarative Pydantic persistence. Manager-first. Production-ready.**
+# `registers.db`
 
-[![PyPI version](https://img.shields.io/pypi/v/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
-[![Python](https://img.shields.io/pypi/pyversions/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-5C6BC0?labelColor=1a1a2e&style=for-the-badge)](LICENSE)
-[![Downloads](https://img.shields.io/pypi/dm/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
-[![SQLAlchemy](https://img.shields.io/badge/Powered%20by-SQLAlchemy-5C6BC0?labelColor=1a1a2e&style=for-the-badge)](https://www.sqlalchemy.org/)
+**Pydantic-first persistence layer with registry/manager ergonomics, schema helpers, query operators, and application-ready integration patterns.**
+
+[![Module](https://img.shields.io/badge/module-registers.db-5C6BC0?style=for-the-badge)](#) [![Type](https://img.shields.io/badge/type-Persistence%20Layer-1F2937?style=for-the-badge)](#) [![Modeling](https://img.shields.io/badge/modeling-Pydantic--First-0F766E?style=for-the-badge)](#) [![Engine](https://img.shields.io/badge/powered%20by-SQLAlchemy-7C3AED?style=for-the-badge)](#) [![Patterns](https://img.shields.io/badge/patterns-Registry%20%7C%20Manager-9333EA?style=for-the-badge)](#) [![Maturity](https://img.shields.io/badge/status-Production%20Guide-2563EB?style=for-the-badge)](#)
 
 </div>
 
+## Tags
+
+`Pydantic Models` `Manager API` `CRUD` `Query Operators` `Bulk Operations` `Schema Evolution` `Relationships` `FastAPI Integration`
+
+> **Positioning:** Use `registers.db` when you want a lightweight persistence abstraction that preserves Pydantic-centered development while still exposing operationally useful database primitives.
+
 ---
 
+`registers.db` is a Pydantic-first persistence layer powered by SQLAlchemy engines and a registry/manager pattern. It lets you define data as Pydantic models and persist, query, evolve, and integrate those models without writing full ORM mapping boilerplate.
+
+This refactored manual is designed for backend engineers, FastAPI developers, library maintainers, and AI coding agents that need complete usage guidance for the public API.
+
+## Audience
+
+Use this manual if you are:
+
+- registering Pydantic models as database-backed records;
+- building FastAPI services with a manager-style persistence API;
+- using query operators, upserts, bulk writes, relationships, or schema helpers;
+- designing test-isolated registries;
+- documenting safe lifecycle, error, and security practices.
+
+## Operating Model
+
+`registers.db` centers on one concept: a registered Pydantic model receives a manager object, usually `Model.objects`, that owns persistence operations.
+
+| Layer | Responsibility |
+|---|---|
+| Model | Pydantic schema and validation. |
+| Registry | Model-to-table binding, engine ownership, metadata validation. |
+| Manager | CRUD, queries, upserts, bulk operations, schema helpers, transactions. |
+| Integration | FastAPI lifecycle, exception mapping, service-layer composition. |
+
+## Production Contract
+
+A production service should define:
+
+- explicit `table_name`, `key_field`, and uniqueness rules;
+- stable manager naming, usually `objects`;
+- startup-safe schema lifecycle checks;
+- exception handlers for user-facing HTTP boundaries;
+- explicit disposal at shutdown/test teardown;
+- service-layer invariants for multi-record writes;
+- clear policy around automatic password hashing and response serialization.
+
+---
 ## What Is registers.db?
 
 `registers.db` is a persistence layer for **Pydantic models**, powered by SQLAlchemy engines and a registry/manager pattern. Define your data as Pydantic classes. Persist, query, and evolve them through a clean manager API — with zero ORM boilerplate.
@@ -230,7 +263,7 @@ from registers import database_registry, db_field
 @database_registry("sqlite:///app.db", table_name="accounts", key_field="id")
 class Account(BaseModel):
     id: int | None = None
-    email: str         = db_field(unique=True, index=True)
+    email: str = db_field(unique=True, index=True)
     manager_id: int | None = db_field(foreign_key="users.id", default=None)
 ```
 
@@ -805,3 +838,76 @@ from decorates import ...
 Built with [Pydantic](https://docs.pydantic.dev/) · Powered by [SQLAlchemy](https://www.sqlalchemy.org/)
 
 </div>
+
+---
+
+## Public API Reference
+
+### Top-Level Imports
+
+```python
+from registers import (
+    database_registry,
+    DatabaseRegistry,
+    db_field,
+    HasMany,
+    BelongsTo,
+    HasManyThrough,
+    dispose_all,
+    hash_password,
+    is_password_hash,
+    verify_password,
+)
+```
+
+### Registry APIs
+
+| API | Purpose |
+|---|---|
+| `database_registry(...)` | Module-level decorator for binding a Pydantic model to a table. |
+| `DatabaseRegistry()` | Explicit registry object for isolated model sets. |
+| `db.database_registry(...)` | Instance-level decorator equivalent to the module-level API. |
+| `dispose_all()` | Dispose globally cached engines; useful during shutdown or test teardown. |
+
+### Manager APIs
+
+| Category | Methods |
+|---|---|
+| Create/update | `create`, `strict_create`, `upsert`, `save`, `update_where` |
+| Delete | `delete`, `delete_where` |
+| Read | `get`, `require`, `filter`, `all`, `get_all`, `exists`, `count`, `first`, `last`, `refresh` |
+| Bulk | `bulk_create`, `bulk_upsert` |
+| Schema | `ensure_column`, `add_column`, `rename_table`, `column_names` |
+| Transaction/lifecycle | `transaction`, `dispose` |
+
+### Model Helpers
+
+| Helper | Purpose |
+|---|---|
+| `instance.save()` | Persist changed instance state through manager upsert semantics. |
+| `instance.delete()` | Delete the persisted record by primary key. |
+| `instance.refresh()` | Reload the persisted record state. |
+| `instance.verify_password(raw)` | Verify raw password against stored hash when a model has a `password` field. |
+| `Model.create_schema()` | Create the registered table. |
+| `Model.schema_exists()` | Check whether the table exists. |
+| `Model.truncate()` | Remove table data. |
+| `Model.drop_schema()` | Drop the registered table. |
+
+## Production Readiness Checklist
+
+Before deploying a `registers.db` model layer, verify the following:
+
+- [ ] Every registered model has an intentional `table_name`.
+- [ ] Primary key behavior is explicit and tested.
+- [ ] `unique_fields` or `db_field(unique=True)` is defined for natural identity where upsert is expected.
+- [ ] Query filters are validated at service boundaries before being spread into manager calls.
+- [ ] Optional filters are built in a dict and omit `None` values.
+- [ ] Multi-record business invariants live in a service layer.
+- [ ] FastAPI exception handlers map registry errors to stable HTTP responses.
+- [ ] Shutdown hooks call `dispose()` or `dispose_all()`.
+- [ ] Password hashing behavior is documented in the API layer and raw passwords are never returned in responses.
+- [ ] Schema evolution uses idempotent helpers such as `ensure_column(...)` unless failure-on-existing is desired.
+
+## Recommended Positioning
+
+Use `registers.db` as a lightweight persistence layer for Pydantic-centric services, prototypes that need real persistence, internal tools, and FastAPI backends where manager-style CRUD is preferred over direct ORM mapping. For complex transactional domains, highly customized SQL, or advanced migration workflows, keep service-layer boundaries explicit and use lower-level SQLAlchemy transactions where needed.

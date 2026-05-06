@@ -1,11 +1,26 @@
-# Registers
+```
+ ██████╗ ███████╗ ██████╗ ██╗███████╗████████╗███████╗██████╗ ███████╗   
+ ██╔══██╗██╔════╝██╔════╝ ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗██╔════╝ 
+ ██████╔╝█████╗  ██║  ███╗██║███████╗   ██║   █████╗  ██████╔╝███████╗ 
+ ██╔══██╗██╔══╝  ██║   ██║██║╚════██║   ██║   ██╔══╝  ██╔══██╗╚════██║ 
+ ██║  ██║███████╗╚██████╔╝██║███████║   ██║   ███████╗██║  ██║███████║ 
+ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝   
+```
 
-[![PyPI version](https://img.shields.io/pypi/v/registers)](https://pypi.org/project/registers/)
-[![Python versions](https://img.shields.io/pypi/pyversions/registers)](https://pypi.org/project/registers/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Module](https://img.shields.io/badge/module-registers-green)](#registers)
-[![FX Tool](https://img.shields.io/badge/tool-fx--tool-black)](https://github.com/nexustech101/fx-tool)
-![Tests](https://img.shields.io/badge/tests-250%2B%20unit%20tests-brightgreen)
+<div align="center">
+
+**Declarative Pydantic persistence. Manager-first. Production-ready.**
+
+[![PyPI version](https://img.shields.io/pypi/v/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
+[![Python](https://img.shields.io/pypi/pyversions/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-5C6BC0?labelColor=1a1a2e&style=for-the-badge)](LICENSE)
+[![Downloads](https://img.shields.io/pypi/dm/registers?color=5C6BC0&labelColor=1a1a2e&style=for-the-badge)](https://pypi.org/project/registers/)
+[![SQLAlchemy](https://img.shields.io/badge/Powered%20by-SQLAlchemy-5C6BC0?labelColor=1a1a2e&style=for-the-badge)](https://www.sqlalchemy.org/)
+[![TESTS](https://img.shields.io/badge/UNIT%20TESTS-250+-5C6BC0?labelColor=1a1a2e&style=for-the-badge)](https://www.sqlalchemy.org/)
+
+</div>
+
+---
 
 Registers is a DX-first Python framework for building:
 
@@ -13,7 +28,7 @@ Registers is a DX-first Python framework for building:
 - Data and API services
 - Scheduled/event automation workflows
 
-It uses decorators for command, model, and job definitions, and pairs with `fx-tool`, the project manager for scaffolding, running, validating, and operating Registers projects.
+It uses decorators for commands, database models, and job definitions, and pairs with `fx-tool`, the project manager for scaffolding, running, validating, and operating Registers projects.
 
 This framework is for teams and developers who want one coherent toolkit for backend development and DevOps workflows instead of stitching together many unrelated layers. Build, manage, and deploy at the speed of thought.
 
